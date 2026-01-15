@@ -1,11 +1,13 @@
 <?php
+// public/index.php
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/Util.php';
 require_once __DIR__ . '/../src/Db.php';
 require_once __DIR__ . '/../src/CsvWriter.php';
 require_once __DIR__ . '/../src/DocParserInvoiceParser.php';
-require_once __DIR__ . '/../src/Importer.php';
+require_once __DIR__ . '/../src/PurchaseImporter.php';
+require_once __DIR__ . '/../src/SaleImporter.php';
 require_once __DIR__ . '/../src/RunStore.php';
 
 session_start();
@@ -40,6 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
   try {
     requireCsrf();
 
+    $type = $_POST['type'] ?? '';
+    if (!in_array($type, ['purchase', 'sale'], true)) {
+      throw new RuntimeException('Invalid type. Must be purchase or sale.');
+    }
+
     if (!isset($_FILES['zip']) || $_FILES['zip']['error'] !== UPLOAD_ERR_OK) {
       throw new RuntimeException('Upload failed');
     }
@@ -69,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
 
     $draft = [
       'run_id' => $runId,
+      'type' => $type,
       'created_at' => Util::nowSql(),
       'source' => [
         'zip_name' => $orig,
@@ -84,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       $draft['invoices'][] = [
         'source_file' => basename($jf),
         'supplier_name' => (string)($inv['supplier_name'] ?? ''),
+        'customer_name' => (string)($inv['supplier_name'] ?? ''), // 暫時用同一個 parser
         'declared_total' => $inv['declared_total'],
         'calc_total' => (float)($inv['calc_total'] ?? 0),
         'items' => array_values(array_map(function($it){
@@ -101,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
     $store->saveDraft($runId, $draft);
     $store->saveRawUpload($runId, $zipPath, $extractDir);
 
-    header('Location: ?action=preview&run=' . urlencode($runId));
+    header('Location: preview.php?run=' . urlencode($runId));
     exit;
 
   } catch (Throwable $e) {
@@ -109,286 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
     echo "<pre>".h($e->getMessage())."</pre>";
     exit;
   }
-}
-
-/** ROUTE: confirm -> import DB **/
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'confirm') {
-  try {
-    requireCsrf();
-    $runId = (string)($_GET['run'] ?? '');
-    if (!$runId) throw new RuntimeException('Missing run id');
-
-    // read posted data (edited)
-    $posted = $_POST['invoices'] ?? null;
-    if (!is_array($posted)) throw new RuntimeException('Invalid invoices payload');
-
-    // rebuild normalized draft
-    $draft = $store->loadDraft($runId);
-    $draft['invoices'] = [];
-
-    foreach ($posted as $idx => $inv) {
-      if (!is_array($inv)) continue;
-
-      $supplier = trim((string)($inv['supplier_name'] ?? ''));
-      $supplier = $supplier !== '' ? $supplier : 'UNKNOWN_SUPPLIER';
-
-      $decl = $inv['declared_total'] ?? null;
-      $decl = ($decl === '' || $decl === null) ? null : (float)$decl;
-
-      $itemsIn = $inv['items'] ?? [];
-      if (!is_array($itemsIn)) $itemsIn = [];
-
-      $items = [];
-      $calc = 0.0;
-      foreach ($itemsIn as $j => $it) {
-        if (!is_array($it)) continue;
-
-        $code = trim((string)($it['code'] ?? ''));
-        $name = trim((string)($it['name'] ?? ''));
-        $qty  = (float)($it['qty'] ?? 0);
-        $unit = (float)($it['unit_price'] ?? 0);
-        $tot  = (float)($it['total'] ?? 0);
-
-        if ($name === '' && $code === '') continue;
-        if ($qty <= 0) $qty = 1;
-
-        // 如果用户没填 total，就用 qty*unit 算
-        if ($tot <= 0 && $unit > 0) $tot = $qty * $unit;
-
-        $calc += $tot;
-
-        $items[] = [
-          'code' => $code,
-          'name' => $name !== '' ? $name : ($code !== '' ? $code : ('ITEM_'.$j)),
-          'qty' => $qty,
-          'unit_price' => $unit,
-          'total' => $tot,
-        ];
-      }
-
-      $draft['invoices'][] = [
-        'source_file' => (string)($inv['source_file'] ?? ('invoice_'.$idx)),
-        'supplier_name' => $supplier,
-        'declared_total' => $decl,
-        'calc_total' => round($calc, 2),
-        'items' => $items,
-      ];
-    }
-
-    // Import to DB
-    $db = Db::pdo($config['db']);
-    $importer = new Importer($db, $config);
-
-    // true = 写DB
-    $result = $importer->importDraft($draft, $runId, true);
-
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    exit;
-
-  } catch (Throwable $e) {
-    http_response_code(500);
-    echo "<pre>".h($e->getMessage())."</pre>";
-    exit;
-  }
-}
-
-/** ROUTE: preview page **/
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'preview') {
-  $runId = (string)($_GET['run'] ?? '');
-  if (!$runId) { http_response_code(400); echo "Missing run id"; exit; }
-
-  try {
-    $draft = $store->loadDraft($runId);
-  } catch (Throwable $e) {
-    http_response_code(404); echo "<pre>".h($e->getMessage())."</pre>"; exit;
-  }
-
-  ?>
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Preview & Edit</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .card { border:1px solid #ddd; border-radius:10px; padding:16px; margin-bottom:14px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border:1px solid #ddd; padding:8px; vertical-align: top; }
-    th { background:#f6f6f6; text-align:left; }
-    .row-actions button { margin-right: 6px; }
-    .warn { color:#b45309; font-weight:600; }
-    .ok { color:#166534; font-weight:600; }
-    .small { color:#666; font-size:12px; }
-    input[type="text"], input[type="number"] { width: 100%; box-sizing: border-box; padding:6px; }
-    .topbar { display:flex; gap:12px; align-items:center; margin-bottom:14px; }
-    .topbar a { text-decoration:none; }
-  </style>
-</head>
-<body>
-
-  <div class="topbar">
-    <h2 style="margin:0;">Preview & Edit</h2>
-    <div class="small">Run: <?=h($runId)?> | ZIP: <?=h((string)($draft['source']['zip_name'] ?? ''))?></div>
-  </div>
-
-  <form method="post" action="?action=confirm&run=<?=h($runId)?>">
-    <?=csrfField()?>
-
-    <?php foreach (($draft['invoices'] ?? []) as $i => $inv): 
-      $decl = $inv['declared_total'];
-      $calc = (float)($inv['calc_total'] ?? 0);
-      $diff = ($decl !== null) ? abs((float)$decl - $calc) : 0.0;
-      $status = ($decl === null) ? 'NO DECLARED TOTAL' : (($diff <= 0.05) ? 'OK' : 'MISMATCH');
-    ?>
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; gap:10px;">
-          <div>
-            <div><b>File:</b> <?=h((string)$inv['source_file'])?></div>
-            <div class="small">Declared: <b><?=h($decl === null ? '' : (string)$decl)?></b> | Calc: <b><?=h((string)$calc)?></b>
-              <?php if ($status === 'OK'): ?>
-                <span class="ok">✓ OK</span>
-              <?php elseif ($status === 'MISMATCH'): ?>
-                <span class="warn">⚠ Mismatch (diff <?=h((string)$diff)?>)</span>
-              <?php else: ?>
-                <span class="warn">⚠ No declared total</span>
-              <?php endif; ?>
-            </div>
-          </div>
-          <div style="min-width:260px;">
-            <label class="small">Supplier name</label>
-            <input type="text" name="invoices[<?=$i?>][supplier_name]" value="<?=h((string)$inv['supplier_name'])?>">
-            <input type="hidden" name="invoices[<?=$i?>][source_file]" value="<?=h((string)$inv['source_file'])?>">
-          </div>
-        </div>
-
-        <div style="margin-top:10px;">
-          <table class="items-table" data-invoice-index="<?=$i?>">
-            <thead>
-              <tr>
-                <th style="width:120px;">Code</th>
-                <th>Name</th>
-                <th style="width:90px;">Qty</th>
-                <th style="width:120px;">Unit Price</th>
-                <th style="width:130px;">Total</th>
-                <th style="width:150px;">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach (($inv['items'] ?? []) as $j => $it): ?>
-                <tr>
-                  <td><input type="text" name="invoices[<?=$i?>][items][<?=$j?>][code]" value="<?=h((string)$it['code'])?>"></td>
-                  <td><input type="text" name="invoices[<?=$i?>][items][<?=$j?>][name]" value="<?=h((string)$it['name'])?>"></td>
-                  <td><input type="number" step="0.0001" class="qty" name="invoices[<?=$i?>][items][<?=$j?>][qty]" value="<?=h((string)$it['qty'])?>"></td>
-                  <td><input type="number" step="0.0001" class="unit" name="invoices[<?=$i?>][items][<?=$j?>][unit_price]" value="<?=h((string)$it['unit_price'])?>"></td>
-                  <td><input type="number" step="0.01" class="line-total" name="invoices[<?=$i?>][items][<?=$j?>][total]" value="<?=h((string)$it['total'])?>"></td>
-                  <td class="row-actions">
-                    <button type="button" class="btn-add">+ row</button>
-                    <button type="button" class="btn-del">delete</button>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-
-          <div style="display:flex; gap:12px; margin-top:10px;">
-            <div style="min-width:200px;">
-              <label class="small">Declared total (optional)</label>
-              <input type="number" step="0.01" name="invoices[<?=$i?>][declared_total]" value="<?=h($decl === null ? '' : (string)$decl)?>">
-            </div>
-            <div style="flex:1;">
-              <div class="small">Live calc total</div>
-              <div><b class="calc-sum" id="calc-sum-<?=$i?>"><?=h((string)$calc)?></b></div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    <?php endforeach; ?>
-
-    <button type="submit" style="padding:10px 18px; font-size:16px;">Confirm Import → Save to DB</button>
-    <p class="small">
-      Tip: qty / unit price 修改后会自动重算 total；也可手动改 total（例如含税/折扣行）。
-    </p>
-  </form>
-
-<script>
-(function(){
-  function recalcTable(table){
-    let sum = 0;
-    table.querySelectorAll('tbody tr').forEach(tr=>{
-      const qtyEl = tr.querySelector('.qty');
-      const unitEl = tr.querySelector('.unit');
-      const totEl = tr.querySelector('.line-total');
-      const qty = parseFloat(qtyEl?.value || '0') || 0;
-      const unit = parseFloat(unitEl?.value || '0') || 0;
-      let tot = parseFloat(totEl?.value || '0') || 0;
-      // 如果 total 为空/0，则用 qty*unit
-      if (!totEl.value || tot <= 0){
-        tot = qty * unit;
-        if (isFinite(tot)) totEl.value = (Math.round(tot * 100) / 100).toFixed(2);
-      }
-      sum += (parseFloat(totEl.value || '0') || 0);
-    });
-    const invoiceIndex = table.getAttribute('data-invoice-index');
-    const sumEl = document.getElementById('calc-sum-' + invoiceIndex);
-    if (sumEl) sumEl.textContent = (Math.round(sum * 100) / 100).toFixed(2);
-  }
-
-  function renumber(table){
-    const invoiceIndex = table.getAttribute('data-invoice-index');
-    table.querySelectorAll('tbody tr').forEach((tr, idx)=>{
-      tr.querySelectorAll('input').forEach(inp=>{
-        // rename invoices[i][items][j][field]
-        inp.name = inp.name.replace(/invoices\[\d+\]\[items\]\[\d+\]/, `invoices[${invoiceIndex}][items][${idx}]`);
-      });
-    });
-  }
-
-  document.querySelectorAll('.items-table').forEach(table=>{
-    table.addEventListener('input', (e)=>{
-      if (e.target.classList.contains('qty') || e.target.classList.contains('unit') || e.target.classList.contains('line-total')) {
-        // 如果 qty/unit 改了，强制用 qty*unit 更新 total（更符合你们导入）
-        if (e.target.classList.contains('qty') || e.target.classList.contains('unit')) {
-          const tr = e.target.closest('tr');
-          const qty = parseFloat(tr.querySelector('.qty').value || '0') || 0;
-          const unit = parseFloat(tr.querySelector('.unit').value || '0') || 0;
-          const totEl = tr.querySelector('.line-total');
-          const tot = qty * unit;
-          if (isFinite(tot)) totEl.value = (Math.round(tot * 100) / 100).toFixed(2);
-        }
-        recalcTable(table);
-      }
-    });
-
-    table.addEventListener('click', (e)=>{
-      if (e.target.classList.contains('btn-add')) {
-        const tr = e.target.closest('tr');
-        const clone = tr.cloneNode(true);
-        clone.querySelectorAll('input').forEach(inp=> inp.value = '');
-        tr.parentNode.insertBefore(clone, tr.nextSibling);
-        renumber(table);
-        recalcTable(table);
-      }
-      if (e.target.classList.contains('btn-del')) {
-        const tr = e.target.closest('tr');
-        const tbody = tr.parentNode;
-        if (tbody.querySelectorAll('tr').length <= 1) return;
-        tr.remove();
-        renumber(table);
-        recalcTable(table);
-      }
-    });
-
-    recalcTable(table);
-  });
-})();
-</script>
-
-</body>
-</html>
-<?php
-  exit;
 }
 
 /** DEFAULT: upload page **/
@@ -397,22 +126,200 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'preview') {
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Doc Parser Importer</title>
+  <title>Invoice Importer - Choose Type</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 24px; }
-    .box { border:1px solid #ddd; padding:16px; border-radius:10px; max-width:760px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 40px 20px;
+    }
+    .container { 
+      max-width: 680px; 
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 40px;
+    }
+    h1 { 
+      font-size: 28px;
+      color: #1a1a1a;
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 32px;
+      font-size: 15px;
+    }
+    .form-group {
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+      font-size: 14px;
+    }
+    .type-selector {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .type-option {
+      flex: 1;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .type-option:hover {
+      border-color: #2563eb;
+      background: #f8faff;
+    }
+    .type-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+    }
+    .type-option input[type="radio"]:checked + .type-content {
+      border-color: #2563eb;
+    }
+    .type-option input[type="radio"]:checked ~ .check-icon {
+      display: block;
+    }
+    .type-content {
+      text-align: center;
+    }
+    .type-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+    .type-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    .type-desc {
+      font-size: 13px;
+      color: #666;
+    }
+    .check-icon {
+      display: none;
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 24px;
+      height: 24px;
+      background: #2563eb;
+      border-radius: 50%;
+      color: white;
+      font-size: 14px;
+      line-height: 24px;
+      text-align: center;
+    }
+    input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px dashed #d0d0d0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    input[type="file"]:hover {
+      border-color: #2563eb;
+      background: #f8faff;
+    }
+    button {
+      width: 100%;
+      padding: 14px 24px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:disabled {
+      background: #d0d0d0;
+      cursor: not-allowed;
+    }
+    .info-box {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+      font-size: 14px;
+      color: #0369a1;
+    }
+    .info-box strong {
+      display: block;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
-  <h2>Upload doc_parser ZIP</h2>
-  <div class="box">
-    <form method="post" action="?action=upload" enctype="multipart/form-data">
+  <div class="container">
+    <h1>📦 Invoice Importer</h1>
+    <p class="subtitle">Upload your doc_parser ZIP file and select invoice type</p>
+
+    <form method="post" action="?action=upload" enctype="multipart/form-data" id="uploadForm">
       <?=csrfField()?>
-      <p>Upload a ZIP containing PaddleOCR doc_parser outputs (*.json, optional *.md).</p>
-      <input type="file" name="zip" accept=".zip" required />
-      <br><br>
-      <button type="submit">Upload → Preview</button>
+
+      <div class="form-group">
+        <label>Select Invoice Type</label>
+        <div class="type-selector">
+          <label class="type-option">
+            <input type="radio" name="type" value="purchase" required>
+            <div class="type-content">
+              <div class="type-icon">🛒</div>
+              <div class="type-title">Purchase Invoice</div>
+              <div class="type-desc">From suppliers</div>
+            </div>
+            <div class="check-icon">✓</div>
+          </label>
+
+          <label class="type-option">
+            <input type="radio" name="type" value="sale" required>
+            <div class="type-content">
+              <div class="type-icon">💰</div>
+              <div class="type-title">Sale Invoice</div>
+              <div class="type-desc">To customers</div>
+            </div>
+            <div class="check-icon">✓</div>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Upload ZIP File</label>
+        <input type="file" name="zip" accept=".zip" required />
+      </div>
+
+      <button type="submit">Continue to Preview →</button>
+
+      <div class="info-box">
+        <strong>📋 What's inside the ZIP?</strong>
+        Your ZIP should contain JSON files from PaddleOCR's doc_parser output. Each JSON file represents one invoice document.
+      </div>
     </form>
   </div>
+
+  <script>
+    document.querySelectorAll('.type-option').forEach(opt => {
+      opt.addEventListener('click', function() {
+        this.querySelector('input[type="radio"]').checked = true;
+      });
+    });
+  </script>
 </body>
 </html>
