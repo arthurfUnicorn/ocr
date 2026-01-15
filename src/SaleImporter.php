@@ -37,12 +37,16 @@ final class SaleImporter {
           continue;
         }
 
-        // Extract date from JSON file
-        $invoiceDate = $this->extractDateFromJson($draft, $baseName);
+        // Get invoice date from draft (already extracted by parser/preview)
+        $invoiceDate = $inv['invoice_date'] ?? date('Y-m-d');
         
-        // Generate work time reference (09:00-18:00)
-        $timestamp = strtotime($invoiceDate) + rand(9*3600, 18*3600);
-        $referenceNo = 'sr-' . date('Ymd-His', $timestamp);
+        // Generate reference_no using invoice date (not current date)
+        // Format: sr-YYYYMMDD-HHMMSS (random work time 09:00-18:00)
+        $hour = str_pad((string)rand(9, 17), 2, '0', STR_PAD_LEFT);
+        $min = str_pad((string)rand(0, 59), 2, '0', STR_PAD_LEFT);
+        $sec = str_pad((string)rand(0, 59), 2, '0', STR_PAD_LEFT);
+        $dateStr = str_replace('-', '', $invoiceDate);
+        $referenceNo = "sr-{$dateStr}-{$hour}{$min}{$sec}";
 
         // Totals
         $decl = $inv['declared_total'];
@@ -66,8 +70,8 @@ final class SaleImporter {
           }
         }
 
-        // Upsert customer
-        $customerId = $writeDb ? $this->upsertCustomer($customerName) : 1;
+        // Check if customer exists, if not create it
+        $customerId = $writeDb ? $this->getOrCreateCustomer($customerName) : 1;
 
         // Insert sale
         $saleId = $writeDb 
@@ -86,8 +90,8 @@ final class SaleImporter {
           if ($name === '') $name = $code;
           if ($qty <= 0) $qty = 1;
 
-          // Upsert product (使用售價)
-          $productId = $writeDb ? $this->upsertProduct($code, $name, $unit) : null;
+          // Check if product exists, if not create it (using sale price)
+          $productId = $writeDb ? $this->getOrCreateProduct($code, $name, $unit) : null;
 
           if ($writeDb && $saleId && $productId) {
             $this->insertProductSale($saleId, $productId, $qty, $unit, $total, $invoiceDate);
@@ -122,43 +126,20 @@ final class SaleImporter {
     ];
   }
 
-  private function extractDateFromJson(array $draft, string $filename): string {
-    // Try to find date in original JSON
-    $runId = $draft['run_id'] ?? '';
-    $extractDir = $this->cfg['paths']['uploads'] . "/{$runId}_unzipped";
-    $jsonPath = $extractDir . '/' . $filename;
-    
-    if (file_exists($jsonPath)) {
-      $content = file_get_contents($jsonPath);
-      // Match Chinese date pattern: 日期：2025-01-10
-      if (preg_match('/æ—¥æœŸ[ï¼š:]\s*(\d{4}-\d{2}-\d{2})/', $content, $m)) {
-        return $m[1];
-      }
-      // Match English date pattern: Date: 2025-01-10
-      if (preg_match('/date[:\s]+(\d{4}-\d{2}-\d{2})/i', $content, $m)) {
-        return $m[1];
-      }
-      // Match Job Date pattern from invoice
-      if (preg_match('/(\d{1,2})-([A-Za-z]{3})-(\d{2})/', $content, $m)) {
-        $months = ['Jan'=>'01','Feb'=>'02','Mar'=>'03','Apr'=>'04','May'=>'05','Jun'=>'06',
-                   'Jul'=>'07','Aug'=>'08','Sep'=>'09','Oct'=>'10','Nov'=>'11','Dec'=>'12'];
-        $year = '20' . $m[3];
-        $month = $months[$m[2]] ?? '01';
-        $day = str_pad($m[1], 2, '0', STR_PAD_LEFT);
-        return "$year-$month-$day";
-      }
-    }
-    
-    // Fallback to today
-    return date('Y-m-d');
-  }
-
-  private function upsertCustomer(string $name): int {
+  /**
+   * Check if customer exists by name, return ID if exists, otherwise create and return new ID
+   */
+  private function getOrCreateCustomer(string $name): int {
+    // First check if exists
     $sel = $this->db->prepare("SELECT id FROM customers WHERE name = ? LIMIT 1");
     $sel->execute([$name]);
     $row = $sel->fetch();
-    if ($row) return (int)$row['id'];
+    
+    if ($row) {
+      return (int)$row['id'];
+    }
 
+    // Create new customer
     $now = Util::nowSql();
     $email = 'unknown+' . Util::slug($name) . '@example.com';
 
@@ -167,15 +148,24 @@ final class SaleImporter {
       VALUES (1, NULL, ?, ?, ?, '0000000000', '-', '-', NULL, NULL, 'Hong Kong', 1, ?, ?)
     ");
     $ins->execute([$name, $name, $email, $now, $now]);
+    
     return (int)$this->db->lastInsertId();
   }
 
-  private function upsertProduct(string $code, string $name, float $price): int {
+  /**
+   * Check if product exists by code, return ID if exists, otherwise create and return new ID
+   */
+  private function getOrCreateProduct(string $code, string $name, float $price): int {
+    // First check if exists
     $sel = $this->db->prepare("SELECT id FROM products WHERE code = ? LIMIT 1");
     $sel->execute([$code]);
     $row = $sel->fetch();
-    if ($row) return (int)$row['id'];
+    
+    if ($row) {
+      return (int)$row['id'];
+    }
 
+    // Create new product (estimate cost as 70% of sale price)
     $now = Util::nowSql();
     $cost = round($price * 0.7, 2);
     
@@ -184,6 +174,7 @@ final class SaleImporter {
       VALUES (?, ?, 'standard', 'C128', NULL, 1, 1, 1, 1, ?, ?, 1, ?, ?)
     ");
     $ins->execute([$name, $code, $cost, $price, $now, $now]);
+    
     return (int)$this->db->lastInsertId();
   }
 
@@ -192,7 +183,8 @@ final class SaleImporter {
     foreach ($items as $it) $totalQty += (float)($it['qty'] ?? 1);
     $grand = ($decl !== null) ? $decl : $calc;
     
-    $timestamp = date('Y-m-d H:i:s', strtotime($date . ' ' . substr($refNo, -6, 2) . ':' . substr($refNo, -4, 2) . ':' . substr($refNo, -2)));
+    // Use invoice date for timestamp
+    $timestamp = $date . ' ' . date('H:i:s');
 
     $ins = $this->db->prepare("
       INSERT INTO sales (
@@ -210,7 +202,7 @@ final class SaleImporter {
   }
 
   private function insertProductSale(int $saleId, int $productId, float $qty, float $unitPrice, float $total, string $date): void {
-    $timestamp = date('Y-m-d H:i:s', strtotime($date . ' 12:00:00'));
+    $timestamp = $date . ' 12:00:00';
     
     $ins = $this->db->prepare("
       INSERT INTO product_sales (

@@ -37,11 +37,9 @@ final class RunStore {
   }
 
   public function saveRawUpload(string $runId, string $zipPath, string $extractDir): void {
-    // 可选：你也可以把 zip / 解压目录保留在 runDir 里，方便追溯
     $dir = $this->runDir($runId);
     Util::ensureDir($dir);
 
-    // 只记录路径信息即可，不强制移动文件（想移动也可以）
     $meta = [
       'zip_path' => $zipPath,
       'extract_dir' => $extractDir,

@@ -18,6 +18,85 @@ function csrfField(): string {
 }
 function h(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); }
 
+/** ROUTE: Save edited draft (AJAX) **/
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'save_draft') {
+  header('Content-Type: application/json');
+  try {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) throw new RuntimeException('Invalid JSON input');
+    
+    $runId = (string)($input['run_id'] ?? '');
+    if (!$runId) throw new RuntimeException('Missing run_id');
+    
+    $draft = $store->loadDraft($runId);
+    $draft['invoices'] = $input['invoices'] ?? [];
+    $store->saveDraft($runId, $draft);
+    
+    echo json_encode(['ok' => true, 'message' => 'Draft saved']);
+  } catch (Throwable $e) {
+    http_response_code(400);
+    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+  }
+  exit;
+}
+
+/** ROUTE: Check entity exists (AJAX) **/
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_entity') {
+  header('Content-Type: application/json');
+  try {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $type = $input['type'] ?? 'supplier';
+    $name = trim($input['name'] ?? '');
+    
+    $db = Db::pdo($config['db']);
+    
+    if ($type === 'supplier') {
+      $stmt = $db->prepare("SELECT id, name FROM suppliers WHERE name = ? LIMIT 1");
+    } else {
+      $stmt = $db->prepare("SELECT id, name FROM customers WHERE name = ? LIMIT 1");
+    }
+    $stmt->execute([$name]);
+    $row = $stmt->fetch();
+    
+    echo json_encode([
+      'exists' => $row !== false,
+      'id' => $row ? (int)$row['id'] : null,
+      'name' => $row ? $row['name'] : null
+    ]);
+  } catch (Throwable $e) {
+    http_response_code(400);
+    echo json_encode(['exists' => false, 'error' => $e->getMessage()]);
+  }
+  exit;
+}
+
+/** ROUTE: Check product exists (AJAX) **/
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_product') {
+  header('Content-Type: application/json');
+  try {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $code = trim($input['code'] ?? '');
+    
+    $db = Db::pdo($config['db']);
+    $stmt = $db->prepare("SELECT id, code, name, cost, price FROM products WHERE code = ? LIMIT 1");
+    $stmt->execute([$code]);
+    $row = $stmt->fetch();
+    
+    echo json_encode([
+      'exists' => $row !== false,
+      'id' => $row ? (int)$row['id'] : null,
+      'code' => $row ? $row['code'] : null,
+      'name' => $row ? $row['name'] : null,
+      'cost' => $row ? (float)$row['cost'] : null,
+      'price' => $row ? (float)$row['price'] : null
+    ]);
+  } catch (Throwable $e) {
+    http_response_code(400);
+    echo json_encode(['exists' => false, 'error' => $e->getMessage()]);
+  }
+  exit;
+}
+
 /** ROUTE: confirm import **/
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'confirm') {
   try {
@@ -32,7 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'confir
     $draft = $store->loadDraft($runId);
     $type = $draft['type'] ?? 'purchase';
 
-    // Import
     $db = Db::pdo($config['db']);
     
     if ($type === 'purchase') {
@@ -43,7 +121,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'confir
       $result = $importer->importDraft($draft, $runId, true);
     }
 
-    // Success page
     ?>
     <!doctype html>
     <html>
@@ -66,15 +143,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'confir
           padding: 40px;
           text-align: center;
         }
-        .success-icon {
-          font-size: 64px;
-          margin-bottom: 20px;
-        }
-        h1 {
-          color: #059669;
-          margin-bottom: 12px;
-          font-size: 28px;
-        }
+        .success-icon { font-size: 64px; margin-bottom: 20px; }
+        h1 { color: #059669; margin-bottom: 12px; font-size: 28px; }
         .stats {
           background: #f0fdf4;
           border: 1px solid #86efac;
@@ -89,45 +159,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'confir
           padding: 8px 0;
           border-bottom: 1px solid #d1fae5;
         }
-        .stat-row:last-child {
-          border-bottom: none;
-        }
-        .stat-label {
-          color: #065f46;
-          font-weight: 600;
-        }
-        .stat-value {
-          color: #059669;
-          font-weight: 700;
-        }
-        .actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 24px;
-        }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: #065f46; font-weight: 600; }
+        .stat-value { color: #059669; font-weight: 700; }
         .btn {
-          flex: 1;
+          display: inline-block;
           padding: 12px 24px;
           border-radius: 8px;
           text-decoration: none;
           font-weight: 600;
           text-align: center;
-          transition: all 0.2s;
-        }
-        .btn-primary {
           background: #2563eb;
           color: white;
         }
-        .btn-primary:hover {
-          background: #1d4ed8;
-        }
-        .btn-secondary {
-          background: #f3f4f6;
-          color: #374151;
-        }
-        .btn-secondary:hover {
-          background: #e5e7eb;
-        }
+        .btn:hover { background: #1d4ed8; }
       </style>
     </head>
     <body>
@@ -137,7 +182,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'confir
         <p style="color: #666; margin-bottom: 24px;">
           Your <?=h($type)?> invoices have been imported to the database.
         </p>
-
         <div class="stats">
           <div class="stat-row">
             <span class="stat-label">Run ID:</span>
@@ -151,15 +195,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'confir
             <span class="stat-label">Failed:</span>
             <span class="stat-value"><?=h((string)$result['failed'])?> invoices</span>
           </div>
-          <div class="stat-row">
-            <span class="stat-label">Exports Directory:</span>
-            <span class="stat-value" style="font-size: 12px;"><?=h($result['exports_dir'])?></span>
-          </div>
         </div>
-
-        <div class="actions">
-          <a href="index.php" class="btn btn-primary">Import Another Batch</a>
-        </div>
+        <a href="index.php" class="btn">Import Another Batch</a>
       </div>
     </body>
     </html>
@@ -176,52 +213,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'confir
       <title>Import Failed</title>
       <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-          background: #f5f5f5;
-          padding: 40px 20px;
-        }
-        .container { 
-          max-width: 680px; 
-          margin: 0 auto;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          padding: 40px;
-        }
-        .error-icon {
-          font-size: 64px;
-          text-align: center;
-          margin-bottom: 20px;
-        }
-        h1 {
-          color: #dc2626;
-          margin-bottom: 12px;
-          font-size: 28px;
-          text-align: center;
-        }
-        .error-box {
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-radius: 8px;
-          padding: 20px;
-          margin: 24px 0;
-          font-family: monospace;
-          color: #991b1b;
-          white-space: pre-wrap;
-          word-wrap: break-word;
-        }
-        .btn {
-          display: block;
-          width: 100%;
-          padding: 12px 24px;
-          background: #2563eb;
-          color: white;
-          border-radius: 8px;
-          text-decoration: none;
-          font-weight: 600;
-          text-align: center;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #f5f5f5; padding: 40px 20px; }
+        .container { max-width: 680px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 40px; }
+        .error-icon { font-size: 64px; text-align: center; margin-bottom: 20px; }
+        h1 { color: #dc2626; margin-bottom: 12px; font-size: 28px; text-align: center; }
+        .error-box { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 20px; margin: 24px 0; font-family: monospace; color: #991b1b; white-space: pre-wrap; }
+        .btn { display: block; width: 100%; padding: 12px 24px; background: #2563eb; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; text-align: center; }
       </style>
     </head>
     <body>
@@ -257,101 +254,76 @@ try {
 $type = $draft['type'] ?? 'purchase';
 $isPurchase = ($type === 'purchase');
 
-// 準備預覽數據
+// Check DB for existing entities
 $db = Db::pdo($config['db']);
-$previewData = [];
 
+function checkSupplierExists(PDO $db, string $name): ?int {
+  $stmt = $db->prepare("SELECT id FROM suppliers WHERE name = ? LIMIT 1");
+  $stmt->execute([$name]);
+  $row = $stmt->fetch();
+  return $row ? (int)$row['id'] : null;
+}
+
+function checkCustomerExists(PDO $db, string $name): ?int {
+  $stmt = $db->prepare("SELECT id FROM customers WHERE name = ? LIMIT 1");
+  $stmt->execute([$name]);
+  $row = $stmt->fetch();
+  return $row ? (int)$row['id'] : null;
+}
+
+function checkProductExists(PDO $db, string $code): ?array {
+  $stmt = $db->prepare("SELECT id, name, cost, price FROM products WHERE code = ? LIMIT 1");
+  $stmt->execute([$code]);
+  $row = $stmt->fetch();
+  return $row ? ['id' => (int)$row['id'], 'name' => $row['name'], 'cost' => (float)$row['cost'], 'price' => (float)$row['price']] : null;
+}
+
+// Prepare preview data with DB checks
+$invoicesJson = [];
 foreach (($draft['invoices'] ?? []) as $idx => $inv) {
   $entityName = $isPurchase 
     ? ($inv['supplier_name'] ?? 'UNKNOWN') 
     : ($inv['customer_name'] ?? 'UNKNOWN');
   
-  $sourceFile = (string)($inv['source_file'] ?? 'unknown.json');
-  $items = $inv['items'] ?? [];
+  $entityId = $isPurchase 
+    ? checkSupplierExists($db, $entityName)
+    : checkCustomerExists($db, $entityName);
   
-  // 從 JSON 中提取日期
-  $invoiceDate = null;
-  if (preg_match('/æ—¥æœŸï¼š(\d{4}-\d{2}-\d{2})/', file_get_contents($store->runDir($runId).'_unzipped/'.$sourceFile) ?? '', $m)) {
-    $invoiceDate = $m[1];
-  }
-  if (!$invoiceDate) $invoiceDate = date('Y-m-d');
-  
-  // 生成工作時間 (09:00 - 18:00)
-  $workTime = date('His', strtotime($invoiceDate) + rand(9*3600, 18*3600));
-  $referenceNo = ($isPurchase ? 'pr-' : 'sr-') . date('Ymd', strtotime($invoiceDate)) . '-' . $workTime;
-  
-  // 檢查 supplier/customer 是否存在
-  if ($isPurchase) {
-    $stmt = $db->prepare("SELECT id FROM suppliers WHERE name = ? LIMIT 1");
-  } else {
-    $stmt = $db->prepare("SELECT id FROM customers WHERE name = ? LIMIT 1");
-  }
-  $stmt->execute([$entityName]);
-  $entityExists = $stmt->fetch();
-  $entityId = $entityExists ? (int)$entityExists['id'] : null;
-  
-  // 計算總計
-  $totalQty = 0;
-  $grandTotal = 0;
-  $productRows = [];
-  $productPurchaseRows = [];
-  
-  foreach ($items as $it) {
+  $items = [];
+  foreach (($inv['items'] ?? []) as $it) {
     $code = trim((string)($it['code'] ?? ''));
-    $name = trim((string)($it['name'] ?? ''));
-    if ($code === '') $code = strtoupper(substr(preg_replace('/[^A-Z0-9]+/i', '_', $name), 0, 20)) . '_' . substr(md5($name), 0, 6);
-    if ($name === '') $name = $code;
+    $productInfo = $code !== '' ? checkProductExists($db, $code) : null;
     
-    $qty = (float)($it['qty'] ?? 1);
-    $unitPrice = (float)($it['unit_price'] ?? 0);
-    $total = (float)($it['total'] ?? ($qty * $unitPrice));
-    
-    $totalQty += $qty;
-    $grandTotal += $total;
-    
-    // 檢查 product 是否存在
-    $stmt = $db->prepare("SELECT id FROM products WHERE code = ? LIMIT 1");
-    $stmt->execute([$code]);
-    $productExists = $stmt->fetch();
-    $productId = $productExists ? (int)$productExists['id'] : null;
-    
-    $productRows[] = [
+    $items[] = [
       'code' => $code,
-      'name' => $name,
-      'cost' => $isPurchase ? $unitPrice : round($unitPrice * 0.7, 2),
-      'price' => $isPurchase ? $unitPrice : $unitPrice,
-      'exists' => $productId !== null,
-      'id' => $productId,
-    ];
-    
-    $productPurchaseRows[] = [
-      'product_code' => $code,
-      'qty' => $qty,
-      'unit_price' => $unitPrice,
-      'total' => $total,
+      'name' => (string)($it['name'] ?? ''),
+      'qty' => (float)($it['qty'] ?? 1),
+      'unit_price' => (float)($it['unit_price'] ?? 0),
+      'total' => (float)($it['total'] ?? 0),
+      'product_exists' => $productInfo !== null,
+      'product_id' => $productInfo['id'] ?? null,
     ];
   }
   
-  $previewData[] = [
-    'source_file' => $sourceFile,
-    'reference_no' => $referenceNo,
+  $invoicesJson[] = [
+    'source_file' => (string)($inv['source_file'] ?? 'unknown.json'),
     'entity_name' => $entityName,
     'entity_exists' => $entityId !== null,
     'entity_id' => $entityId,
-    'invoice_date' => $invoiceDate,
-    'total_qty' => $totalQty,
-    'grand_total' => $grandTotal,
-    'products' => $productRows,
-    'product_purchases' => $productPurchaseRows,
+    'invoice_date' => (string)($inv['invoice_date'] ?? date('Y-m-d')),
+    'declared_total' => $inv['declared_total'],
+    'calc_total' => (float)($inv['calc_total'] ?? 0),
+    'items' => $items,
   ];
 }
 
+$csrf = $_SESSION['csrf'] ?? '';
 ?>
 <!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Preview Tables - <?=h(ucfirst($type))?> Import</title>
+  <title>Preview & Edit - <?=h(ucfirst($type))?> Import</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -360,18 +332,17 @@ foreach (($draft['invoices'] ?? []) as $idx => $inv) {
       padding: 20px;
     }
     .header {
-      max-width: 1600px;
+      max-width: 1400px;
       margin: 0 auto 20px;
       background: white;
       padding: 24px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    h1 {
-      font-size: 24px;
-      color: #1a1a1a;
-      margin-bottom: 8px;
-    }
+    h1 { font-size: 24px; color: #1a1a1a; }
     .type-badge {
       display: inline-block;
       padding: 4px 12px;
@@ -383,282 +354,473 @@ foreach (($draft['invoices'] ?? []) as $idx => $inv) {
     .type-purchase { background: #dbeafe; color: #1e40af; }
     .type-sale { background: #dcfce7; color: #15803d; }
     
-    .invoice-section {
-      max-width: 1600px;
-      margin: 0 auto 30px;
+    .invoice-card {
+      max-width: 1400px;
+      margin: 0 auto 24px;
       background: white;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       padding: 24px;
     }
-    .section-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1a1a1a;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
       border-bottom: 2px solid #e5e7eb;
     }
-    .table-wrapper {
-      margin-bottom: 24px;
+    .card-title { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
     }
-    .table-label {
-      font-size: 14px;
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label {
+      font-size: 13px;
       font-weight: 600;
       color: #374151;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
-    .badge {
+    .form-group input, .form-group select {
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .status-badge {
       font-size: 11px;
-      padding: 2px 8px;
+      padding: 3px 8px;
       border-radius: 12px;
       font-weight: 600;
     }
-    .badge-new { background: #fef3c7; color: #92400e; }
     .badge-exists { background: #d1fae5; color: #065f46; }
+    .badge-new { background: #fef3c7; color: #92400e; }
     
-    .table-container {
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-    }
-    table {
+    .items-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      margin-top: 16px;
     }
-    thead {
-      position: sticky;
-      top: 0;
+    .items-table th {
       background: #f9fafb;
-      z-index: 10;
-    }
-    th {
-      padding: 10px 12px;
+      padding: 12px;
       text-align: left;
+      font-size: 13px;
       font-weight: 600;
       color: #374151;
       border-bottom: 2px solid #e5e7eb;
-      white-space: nowrap;
     }
-    td {
+    .items-table td {
       padding: 8px 12px;
       border-bottom: 1px solid #f3f4f6;
     }
-    tbody tr:hover {
-      background: #f9fafb;
+    .items-table input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      font-size: 13px;
     }
-    .text-right { text-align: right; }
-    .text-muted { color: #9ca3af; }
-    .text-success { color: #059669; font-weight: 600; }
-    .text-warning { color: #d97706; font-weight: 600; }
+    .items-table input:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+    .items-table input.input-sm { width: 80px; text-align: right; }
+    .items-table input.input-code { width: 120px; }
     
-    .submit-container {
-      max-width: 1600px;
+    .btn-add-row {
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: #f3f4f6;
+      border: 1px dashed #9ca3af;
+      border-radius: 6px;
+      color: #4b5563;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn-add-row:hover { background: #e5e7eb; }
+    
+    .btn-remove {
+      background: #fef2f2;
+      color: #dc2626;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn-remove:hover { background: #fee2e2; }
+    
+    .totals-row {
+      background: #f9fafb;
+      font-weight: 600;
+    }
+    .totals-row td { padding: 12px; }
+    
+    .actions-bar {
+      max-width: 1400px;
       margin: 0 auto;
       background: white;
-      padding: 24px;
+      padding: 20px 24px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 16px;
+      position: sticky;
+      bottom: 20px;
     }
-    .btn-submit {
-      width: 100%;
-      padding: 16px 24px;
-      background: #2563eb;
-      color: white;
-      border: none;
+    .btn {
+      flex: 1;
+      padding: 14px 24px;
       border-radius: 8px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
+      border: none;
+      text-align: center;
+      text-decoration: none;
     }
-    .btn-submit:hover {
-      background: #1d4ed8;
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #f3f4f6; color: #374151; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .btn-success { background: #059669; color: white; }
+    .btn-success:hover { background: #047857; }
+    
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 500;
+      z-index: 1000;
+      display: none;
     }
+    .toast-success { background: #059669; }
+    .toast-error { background: #dc2626; }
   </style>
 </head>
 <body>
 
-  <div class="header">
+<div class="toast toast-success" id="toast"></div>
+
+<div class="header">
+  <div>
     <h1>
-      Preview Import Data
-      <span class="type-badge type-<?=h($type)?>"><?=h(ucfirst($type))?> Invoices</span>
+      Preview & Edit
+      <span class="type-badge type-<?=h($type)?>"><?=h(ucfirst($type))?></span>
     </h1>
-    <p style="color: #666; font-size: 14px;">
-      Run ID: <?=h($runId)?> | 
-      Invoices: <?=h((string)count($previewData))?>
+    <p style="color: #666; font-size: 14px; margin-top: 8px;">
+      Run ID: <?=h($runId)?> | Invoices: <?=h((string)count($invoicesJson))?>
     </p>
   </div>
+  <button class="btn btn-secondary" onclick="saveAllDrafts()">💾 Save Changes</button>
+</div>
 
-  <?php foreach ($previewData as $idx => $data): ?>
-  <div class="invoice-section">
-    <div class="section-title">
-      📄 Invoice #<?=($idx+1)?> - <?=h($data['source_file'])?>
-    </div>
+<div id="invoices-container"></div>
 
-    <!-- Supplier/Customer Table -->
-    <div class="table-wrapper">
-      <div class="table-label">
-        <?=h($isPurchase ? '📦 Supplier' : '👤 Customer')?>
-        <?php if ($data['entity_exists']): ?>
-          <span class="badge badge-exists">✓ Exists (ID: <?=h((string)$data['entity_id'])?>)</span>
-        <?php else: ?>
-          <span class="badge badge-new">+ Will Create</span>
-        <?php endif; ?>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Company Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Address</th>
-              <th>City</th>
-              <th>Country</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><?=h($data['entity_name'])?></td>
-              <td><?=h($data['entity_name'])?></td>
-              <td class="text-muted">unknown+<?=h(strtolower(preg_replace('/\s+/', '', $data['entity_name'])))?>@example.com</td>
-              <td class="text-muted">0000000000</td>
-              <td class="text-muted">-</td>
-              <td class="text-muted">-</td>
-              <td class="text-muted">Hong Kong</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Purchase/Sale Table -->
-    <div class="table-wrapper">
-      <div class="table-label">
-        <?=h($isPurchase ? '🛒 Purchase' : '💰 Sale')?> Record
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Reference No</th>
-              <th>User ID</th>
-              <th>Warehouse ID</th>
-              <th><?=h($isPurchase ? 'Supplier' : 'Customer')?> ID</th>
-              <th>Items</th>
-              <th class="text-right">Total Qty</th>
-              <th class="text-right">Grand Total</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong><?=h($data['reference_no'])?></strong></td>
-              <td>1</td>
-              <td>2</td>
-              <td><?=h($data['entity_exists'] ? (string)$data['entity_id'] : 'New')?></td>
-              <td><?=h((string)count($data['products']))?></td>
-              <td class="text-right"><?=h(number_format($data['total_qty'], 2))?></td>
-              <td class="text-right text-success"><?=h(number_format($data['grand_total'], 2))?></td>
-              <td><?=h($isPurchase ? 'Received' : 'Completed')?></td>
-              <td><?=h($data['invoice_date'])?></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Products Table -->
-    <div class="table-wrapper">
-      <div class="table-label">
-        📦 Products
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Name</th>
-              <th>Type</th>
-              <th class="text-right">Cost</th>
-              <th class="text-right">Price</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($data['products'] as $prod): ?>
-            <tr>
-              <td><strong><?=h($prod['code'])?></strong></td>
-              <td><?=h($prod['name'])?></td>
-              <td>standard</td>
-              <td class="text-right"><?=h(number_format($prod['cost'], 2))?></td>
-              <td class="text-right"><?=h(number_format($prod['price'], 2))?></td>
-              <td>
-                <?php if ($prod['exists']): ?>
-                  <span class="text-success">✓ Exists (ID: <?=h((string)$prod['id'])?>)</span>
-                <?php else: ?>
-                  <span class="text-warning">+ New</span>
-                <?php endif; ?>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Product Purchases/Sales Table -->
-    <div class="table-wrapper">
-      <div class="table-label">
-        📋 Product <?=h($isPurchase ? 'Purchases' : 'Sales')?>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th><?=h($isPurchase ? 'Purchase' : 'Sale')?> Ref</th>
-              <th>Product Code</th>
-              <th class="text-right">Quantity</th>
-              <th class="text-right">Unit <?=h($isPurchase ? 'Cost' : 'Price')?></th>
-              <th class="text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($data['product_purchases'] as $pp): ?>
-            <tr>
-              <td><?=h($data['reference_no'])?></td>
-              <td><?=h($pp['product_code'])?></td>
-              <td class="text-right"><?=h(number_format($pp['qty'], 2))?></td>
-              <td class="text-right"><?=h(number_format($pp['unit_price'], 2))?></td>
-              <td class="text-right text-success"><?=h(number_format($pp['total'], 2))?></td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-  <?php endforeach; ?>
-
-  <form method="post" action="?action=confirm&run=<?=h($runId)?>">
-    <?=csrfField()?>
-    <div class="submit-container">
-      <button type="submit" class="btn-submit">
-        ✓ Confirm & Import All Data to Database
-      </button>
-      <p style="margin-top: 12px; font-size: 13px; color: #666; text-align: center;">
-        This will create <?=h((string)count($previewData))?> <?=h($type)?> records with all related data.
-      </p>
-    </div>
+<div class="actions-bar">
+  <a href="index.php" class="btn btn-secondary">← Back</a>
+  <button class="btn btn-secondary" onclick="saveAllDrafts()">💾 Save Draft</button>
+  <form method="post" action="?action=confirm&run=<?=h($runId)?>" style="flex: 2;" id="confirmForm">
+    <input type="hidden" name="csrf" value="<?=h($csrf)?>">
+    <button type="submit" class="btn btn-success" style="width: 100%;">
+      ✓ Confirm & Import to Database
+    </button>
   </form>
+</div>
+
+<script>
+const runId = <?=json_encode($runId)?>;
+const type = <?=json_encode($type)?>;
+const isPurchase = <?=json_encode($isPurchase)?>;
+let invoices = <?=json_encode($invoicesJson, JSON_UNESCAPED_UNICODE)?>;
+
+function showToast(message, isError = false) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast ' + (isError ? 'toast-error' : 'toast-success');
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 3000);
+}
+
+function generateReferenceNo(date) {
+  const d = new Date(date);
+  const h = String(9 + Math.floor(Math.random() * 9)).padStart(2, '0');
+  const m = String(Math.floor(Math.random() * 60)).padStart(2, '0');
+  const s = String(Math.floor(Math.random() * 60)).padStart(2, '0');
+  const prefix = isPurchase ? 'pr' : 'sr';
+  const dateStr = d.toISOString().slice(0,10).replace(/-/g, '');
+  return `${prefix}-${dateStr}-${h}${m}${s}`;
+}
+
+function recalcTotals(invIdx) {
+  const inv = invoices[invIdx];
+  let totalQty = 0;
+  let grandTotal = 0;
+  
+  inv.items.forEach((item, i) => {
+    const qty = parseFloat(item.qty) || 0;
+    const unitPrice = parseFloat(item.unit_price) || 0;
+    const total = qty * unitPrice;
+    
+    inv.items[i].total = Math.round(total * 100) / 100;
+    totalQty += qty;
+    grandTotal += total;
+  });
+  
+  inv.calc_total = Math.round(grandTotal * 100) / 100;
+  renderInvoice(invIdx);
+}
+
+function updateItem(invIdx, itemIdx, field, value) {
+  if (field === 'qty' || field === 'unit_price' || field === 'total') {
+    invoices[invIdx].items[itemIdx][field] = parseFloat(value) || 0;
+    if (field !== 'total') {
+      recalcTotals(invIdx);
+    }
+  } else {
+    invoices[invIdx].items[itemIdx][field] = value;
+  }
+}
+
+function updateInvoice(invIdx, field, value) {
+  if (field === 'entity_name') {
+    if (isPurchase) {
+      invoices[invIdx].entity_name = value;
+    } else {
+      invoices[invIdx].entity_name = value;
+    }
+    checkEntityExists(invIdx, value);
+  } else if (field === 'invoice_date') {
+    invoices[invIdx].invoice_date = value;
+  }
+}
+
+async function checkEntityExists(invIdx, name) {
+  try {
+    const response = await fetch('?action=check_entity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: isPurchase ? 'supplier' : 'customer', name })
+    });
+    const data = await response.json();
+    invoices[invIdx].entity_exists = data.exists;
+    invoices[invIdx].entity_id = data.id;
+    renderInvoice(invIdx);
+  } catch (e) {
+    console.error('Check entity error:', e);
+  }
+}
+
+async function checkProductExists(invIdx, itemIdx, code) {
+  if (!code.trim()) return;
+  try {
+    const response = await fetch('?action=check_product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = await response.json();
+    invoices[invIdx].items[itemIdx].product_exists = data.exists;
+    invoices[invIdx].items[itemIdx].product_id = data.id;
+    renderInvoice(invIdx);
+  } catch (e) {
+    console.error('Check product error:', e);
+  }
+}
+
+function addItem(invIdx) {
+  invoices[invIdx].items.push({
+    code: '',
+    name: '',
+    qty: 1,
+    unit_price: 0,
+    total: 0,
+    product_exists: false,
+    product_id: null
+  });
+  renderInvoice(invIdx);
+}
+
+function removeItem(invIdx, itemIdx) {
+  if (invoices[invIdx].items.length <= 1) {
+    showToast('Cannot remove last item', true);
+    return;
+  }
+  invoices[invIdx].items.splice(itemIdx, 1);
+  recalcTotals(invIdx);
+}
+
+function renderInvoice(invIdx) {
+  const inv = invoices[invIdx];
+  const container = document.getElementById(`invoice-${invIdx}`);
+  if (!container) return;
+  
+  const totalQty = inv.items.reduce((sum, it) => sum + (parseFloat(it.qty) || 0), 0);
+  const entityLabel = isPurchase ? 'Supplier' : 'Customer';
+  const refNo = generateReferenceNo(inv.invoice_date);
+  
+  container.innerHTML = `
+    <div class="card-header">
+      <span class="card-title">📄 Invoice #${invIdx + 1} - ${inv.source_file}</span>
+      <span class="status-badge ${inv.entity_exists ? 'badge-exists' : 'badge-new'}">
+        ${inv.entity_exists ? '✓ ' + entityLabel + ' Exists (ID: ' + inv.entity_id + ')' : '+ New ' + entityLabel}
+      </span>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>${entityLabel} Name</label>
+        <input type="text" value="${inv.entity_name}" 
+               onchange="updateInvoice(${invIdx}, 'entity_name', this.value)"
+               onblur="checkEntityExists(${invIdx}, this.value)">
+      </div>
+      <div class="form-group">
+        <label>Invoice Date</label>
+        <input type="date" value="${inv.invoice_date}" 
+               onchange="updateInvoice(${invIdx}, 'invoice_date', this.value)">
+      </div>
+      <div class="form-group">
+        <label>Reference No (Auto)</label>
+        <input type="text" value="${refNo}" readonly style="background: #f9fafb;">
+      </div>
+      <div class="form-group">
+        <label>Grand Total</label>
+        <input type="text" value="${inv.calc_total.toFixed(2)}" readonly style="background: #f9fafb; font-weight: 600;">
+      </div>
+    </div>
+    
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th style="width: 40px;">#</th>
+          <th style="width: 120px;">Code</th>
+          <th>Product Name</th>
+          <th style="width: 90px;">Qty</th>
+          <th style="width: 100px;">Unit Price</th>
+          <th style="width: 100px;">Total</th>
+          <th style="width: 100px;">Status</th>
+          <th style="width: 60px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${inv.items.map((item, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>
+              <input type="text" class="input-code" value="${item.code}" 
+                     onchange="updateItem(${invIdx}, ${i}, 'code', this.value); checkProductExists(${invIdx}, ${i}, this.value)">
+            </td>
+            <td>
+              <input type="text" value="${item.name}" 
+                     onchange="updateItem(${invIdx}, ${i}, 'name', this.value)">
+            </td>
+            <td>
+              <input type="number" class="input-sm" value="${item.qty}" step="0.01"
+                     onchange="updateItem(${invIdx}, ${i}, 'qty', this.value)">
+            </td>
+            <td>
+              <input type="number" class="input-sm" value="${item.unit_price}" step="0.01"
+                     onchange="updateItem(${invIdx}, ${i}, 'unit_price', this.value)">
+            </td>
+            <td>
+              <input type="number" class="input-sm" value="${item.total.toFixed(2)}" step="0.01" readonly
+                     style="background: #f9fafb;">
+            </td>
+            <td>
+              <span class="status-badge ${item.product_exists ? 'badge-exists' : 'badge-new'}">
+                ${item.product_exists ? '✓ ID: ' + item.product_id : '+ New'}
+              </span>
+            </td>
+            <td>
+              <button class="btn-remove" onclick="removeItem(${invIdx}, ${i})">✕</button>
+            </td>
+          </tr>
+        `).join('')}
+        <tr class="totals-row">
+          <td colspan="3" style="text-align: right;">Totals:</td>
+          <td style="text-align: right;">${totalQty.toFixed(2)}</td>
+          <td></td>
+          <td style="text-align: right; color: #059669;">${inv.calc_total.toFixed(2)}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <button class="btn-add-row" onclick="addItem(${invIdx})">+ Add Item</button>
+  `;
+}
+
+function renderAllInvoices() {
+  const container = document.getElementById('invoices-container');
+  container.innerHTML = invoices.map((inv, idx) => 
+    `<div class="invoice-card" id="invoice-${idx}"></div>`
+  ).join('');
+  
+  invoices.forEach((inv, idx) => renderInvoice(idx));
+}
+
+async function saveAllDrafts() {
+  // Prepare data for saving
+  const saveData = {
+    run_id: runId,
+    invoices: invoices.map(inv => ({
+      source_file: inv.source_file,
+      supplier_name: isPurchase ? inv.entity_name : '',
+      customer_name: !isPurchase ? inv.entity_name : '',
+      invoice_date: inv.invoice_date,
+      declared_total: inv.declared_total,
+      calc_total: inv.calc_total,
+      items: inv.items.map(it => ({
+        code: it.code,
+        name: it.name,
+        qty: it.qty,
+        unit_price: it.unit_price,
+        total: it.total
+      }))
+    }))
+  };
+  
+  try {
+    const response = await fetch('?action=save_draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(saveData)
+    });
+    const result = await response.json();
+    
+    if (result.ok) {
+      showToast('Draft saved successfully!');
+    } else {
+      showToast('Error: ' + result.error, true);
+    }
+  } catch (e) {
+    showToast('Failed to save: ' + e.message, true);
+  }
+}
+
+// Initial render
+renderAllInvoices();
+
+// Save before form submit
+document.getElementById('confirmForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  await saveAllDrafts();
+  this.submit();
+});
+</script>
 
 </body>
 </html>

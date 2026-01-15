@@ -10,6 +10,7 @@ final class DocParserInvoiceParser {
 
     $supplier = $this->guessSupplier($blocks);
     $declaredTotal = $this->guessDeclaredTotal($blocks);
+    $invoiceDate = $this->extractDate($blocks);
 
     $tables = $this->collectTables($blocks);
     $best = $this->pickBestTable($tables);
@@ -22,6 +23,7 @@ final class DocParserInvoiceParser {
       'supplier_name' => $supplier,
       'declared_total' => $declaredTotal,
       'calc_total' => round($calc, 2),
+      'invoice_date' => $invoiceDate,
       'items' => $items,
     ];
   }
@@ -34,14 +36,13 @@ final class DocParserInvoiceParser {
   }
 
   private function guessSupplier(array $blocks): string {
-    // 优先：顶部靠前的“公司名行”，过滤 invoice/date/tel/address 等
     $cands = [];
     foreach ($blocks as $b) {
       $text = trim((string)($b['block_content'] ?? ''));
       if ($text === '') continue;
       $line = trim(explode("\n", $text)[0]);
 
-      if (preg_match('/invoice|receipt|tax|date|tel|phone|fax|address|bill to|ship to|發票|收據|税|稅|日期|電話|地址|客戶|客户/i', $line)) continue;
+      if (preg_match('/invoice|receipt|tax|date|tel|phone|fax|address|bill to|ship to|發票|收據|税|稅|日期|電話|地址|客戶|客户|批次|营业员|經辦人|经办人/iu', $line)) continue;
       if (mb_strlen($line) < 2) continue;
 
       $digitCount = preg_match_all('/\d/', $line);
@@ -49,10 +50,9 @@ final class DocParserInvoiceParser {
 
       $score = 0;
       if (preg_match('/sdn bhd|ltd|limited|inc|co\.|company|enterprise|trading/i', $line)) $score += 5;
-      if (preg_match('/有限公司|國際|国际|網絡|网络|贸易|貿易|商店|商行/u', $line)) $score += 5;
+      if (preg_match('/有限公司|國際|国际|網絡|网络|贸易|貿易|商店|商行|皮具|销售/u', $line)) $score += 5;
       $score += min(10, mb_strlen($line) / 3);
 
-      // bbox y 越小越靠上，加分
       if (isset($b['block_bbox'][1])) $score += max(0, 10 - (float)$b['block_bbox'][1] / 80.0);
 
       $cands[] = ['line'=>$line,'score'=>$score];
@@ -60,6 +60,21 @@ final class DocParserInvoiceParser {
 
     usort($cands, fn($a,$b)=> $b['score'] <=> $a['score']);
     return $cands[0]['line'] ?? 'UNKNOWN_SUPPLIER';
+  }
+
+  private function extractDate(array $blocks): ?string {
+    foreach ($blocks as $b) {
+      $text = trim((string)($b['block_content'] ?? ''));
+      // Match: 日期：2025-01-10 or 日期:2025-01-10
+      if (preg_match('/日期[：:]\s*(\d{4}-\d{2}-\d{2})/u', $text, $m)) {
+        return $m[1];
+      }
+      // Match: Date: 2025-01-10
+      if (preg_match('/date[:\s]+(\d{4}-\d{2}-\d{2})/i', $text, $m)) {
+        return $m[1];
+      }
+    }
+    return null;
   }
 
   private function guessDeclaredTotal(array $blocks): ?float {
@@ -70,7 +85,8 @@ final class DocParserInvoiceParser {
     }
     $joined = implode("\n", $all);
 
-    $re = '/(grand\s*total|total\s*due|amount\s*due|total|合計|合计|總數|总数)\s*[:：]?\s*([A-Z]{0,3}\s*)?([0-9][0-9,]*\.?[0-9]{0,2})/iu';
+    // Match: 本单额：3135元 or grand total patterns
+    $re = '/(grand\s*total|total\s*due|amount\s*due|total|本单额|合計|合计|總數|总数)\s*[:：]?\s*([A-Z]{0,3}\s*)?([0-9][0-9,]*\.?[0-9]{0,2})/iu';
     if (preg_match_all($re, $joined, $m) && !empty($m[3])) {
       $last = end($m[3]);
       $v = Util::money($last);
@@ -123,7 +139,8 @@ final class DocParserInvoiceParser {
       $hdr = strtolower(implode(' ', $t['rows'][0] ?? []));
       $kw = [
         'description','item','product','code','qty','quantity','unit price','amount','total','subtotal',
-        '說明','项目','項目','產品','货品','編號','编号','數量','数量','單價','单价','總數','总数','金額','金额','合計','合计'
+        '說明','项目','項目','產品','货品','編號','编号','數量','数量','單價','单价','總數','总数','金額','金额','合計','合计',
+        '款号','名称','颜色','尺码','备注'  // Added Chinese headers from the invoice
       ];
       $score = 0;
       foreach ($kw as $k) if (strpos($hdr, strtolower($k)) !== false) $score += 2;
@@ -145,16 +162,23 @@ final class DocParserInvoiceParser {
       $r = $rows[$i];
       $whole = strtolower(implode(' ', $r));
 
-      $name = $this->cell($r, $map['name']);
+      // Get values using column mapping
+      $seqNo = $this->cell($r, $map['seq']);
       $code = $this->cell($r, $map['code']);
+      $name = $this->cell($r, $map['name']);
+      $color = $this->cell($r, $map['color']);
       $qtyS = $this->cell($r, $map['qty']);
       $unitS= $this->cell($r, $map['unit_price']);
       $totS = $this->cell($r, $map['total']);
 
-      if ($name==='' && $code==='') continue;
+      // Skip if it's a summary row
+      if (preg_match('/^(合计|total|grand|subtotal)$/iu', trim($seqNo)) || 
+          preg_match('/^(合计|total|grand|subtotal)$/iu', trim($code))) {
+        continue;
+      }
 
-      // 如果是合计行，停止（但要避免误判）
-      if (preg_match('/grand total|合計|合计/u', $whole) && Util::money($totS) > 0) break;
+      // Skip empty rows
+      if ($name === '' && $code === '') continue;
 
       $unit = Util::money($unitS);
       $total = Util::money($totS);
@@ -167,9 +191,16 @@ final class DocParserInvoiceParser {
       }
       if ($qty <= 0) $qty = 1;
 
+      // Build full product name with color if available
+      $fullName = $name;
+      if ($color !== '') {
+        $fullName = $name . ' - ' . $color;
+      }
+
       $items[] = [
         'code' => $code,
-        'name' => $name ?: ($code ?: ('ITEM_'.$i)),
+        'name' => $fullName,
+        'color' => $color,
         'qty' => round($qty, 4),
         'unit_price' => round($unit > 0 ? $unit : ($total > 0 ? $total/$qty : 0), 4),
         'total' => round($total > 0 ? $total : $qty * ($unit > 0 ? $unit : 0), 2),
@@ -186,16 +217,29 @@ final class DocParserInvoiceParser {
       return -1;
     };
 
-    $code = $find(['code','item code','sku','編號','编号']);
-    $name = $find(['description','item','product','name','說明','说明','項目','项目','產品','产品']);
-    $qty  = $find(['qty','quantity','數量','数量']);
-    $unit = $find(['unit price','price','單價','单价']);
-    $tot  = $find(['amount','total','金額','金额','總數','总数','小計','小计','subtotal']);
+    // Map columns with both English and Chinese keywords
+    $seq  = $find(['序号', '序號', 'no', 'seq', '#']);
+    $code = $find(['款号', '款號', 'code', 'item code', 'sku', '編號', '编号', 'sku']);
+    $name = $find(['名称', '名稱', 'description', 'item', 'product', 'name', '說明', '说明', '項目', '项目', '產品', '产品']);
+    $color= $find(['颜色', '顏色', 'color', 'colour']);
+    $qty  = $find(['数量', '數量', 'qty', 'quantity']);
+    $unit = $find(['单价', '單價', 'unit price', 'price', 'unit cost']);
+    $tot  = $find(['金额', '金額', 'amount', 'total', '總數', '总数', '小計', '小计', 'subtotal']);
 
-    if ($name === -1) $name = 0;
-    if ($tot === -1) $tot = count($h) - 1;
+    // Fallback defaults
+    if ($seq === -1) $seq = 0;
+    if ($name === -1) $name = 2;  // Usually 3rd column
+    if ($tot === -1) $tot = count($h) - 2;  // Usually second to last
 
-    return ['code'=>$code,'name'=>$name,'qty'=>$qty,'unit_price'=>$unit,'total'=>$tot];
+    return [
+      'seq' => $seq,
+      'code' => $code,
+      'name' => $name,
+      'color' => $color,
+      'qty' => $qty,
+      'unit_price' => $unit,
+      'total' => $tot
+    ];
   }
 
   private function cell(array $r, int $idx): string {

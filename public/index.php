@@ -89,10 +89,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       $doc = Util::readJson($jf);
       $inv = $parser->parse($doc);
 
+      // Use date from parser or fallback to today
+      $invoiceDate = $inv['invoice_date'] ?? date('Y-m-d');
+
       $draft['invoices'][] = [
         'source_file' => basename($jf),
         'supplier_name' => (string)($inv['supplier_name'] ?? ''),
-        'customer_name' => (string)($inv['supplier_name'] ?? ''), // 暫時用同一個 parser
+        'customer_name' => (string)($inv['supplier_name'] ?? ''), // Use same parser for now
+        'invoice_date' => $invoiceDate,
         'declared_total' => $inv['declared_total'],
         'calc_total' => (float)($inv['calc_total'] ?? 0),
         'items' => array_values(array_map(function($it){
@@ -180,15 +184,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       border-color: #2563eb;
       background: #f8faff;
     }
+    .type-option.selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
     .type-option input[type="radio"] {
       position: absolute;
       opacity: 0;
-    }
-    .type-option input[type="radio"]:checked + .type-content {
-      border-color: #2563eb;
-    }
-    .type-option input[type="radio"]:checked ~ .check-icon {
-      display: block;
     }
     .type-content {
       text-align: center;
@@ -220,6 +222,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       font-size: 14px;
       line-height: 24px;
       text-align: center;
+    }
+    .type-option.selected .check-icon {
+      display: block;
     }
     input[type="file"] {
       width: 100%;
@@ -278,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       <div class="form-group">
         <label>Select Invoice Type</label>
         <div class="type-selector">
-          <label class="type-option">
+          <label class="type-option" id="opt-purchase">
             <input type="radio" name="type" value="purchase" required>
             <div class="type-content">
               <div class="type-icon">🛒</div>
@@ -288,7 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
             <div class="check-icon">✓</div>
           </label>
 
-          <label class="type-option">
+          <label class="type-option" id="opt-sale">
             <input type="radio" name="type" value="sale" required>
             <div class="type-content">
               <div class="type-icon">💰</div>
@@ -317,6 +322,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
   <script>
     document.querySelectorAll('.type-option').forEach(opt => {
       opt.addEventListener('click', function() {
+        document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+        this.classList.add('selected');
         this.querySelector('input[type="radio"]').checked = true;
       });
     });
