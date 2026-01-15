@@ -1,0 +1,67 @@
+{
+    "run_id": "20260115_075138_45bd0cd8",
+    "created_at": "2026-01-15 07:51:38",
+    "source": {
+        "zip_name": "供應商發票 1月_res.zip",
+        "json_count": 1
+    },
+    "invoices": [
+        {
+            "source_file": "供應商發票 1月_res.json",
+            "supplier_name": "广州欧诗贝尔皮具销售单",
+            "declared_total": null,
+            "calc_total": 3135,
+            "items": [
+                {
+                    "code": "",
+                    "name": "1",
+                    "qty": 4,
+                    "unit_price": 145,
+                    "total": 580
+                },
+                {
+                    "code": "",
+                    "name": "2",
+                    "qty": 2,
+                    "unit_price": 145,
+                    "total": 290
+                },
+                {
+                    "code": "",
+                    "name": "3",
+                    "qty": 3,
+                    "unit_price": 160,
+                    "total": 480
+                },
+                {
+                    "code": "",
+                    "name": "4",
+                    "qty": 3,
+                    "unit_price": 160,
+                    "total": 480
+                },
+                {
+                    "code": "",
+                    "name": "5",
+                    "qty": 3,
+                    "unit_price": 145,
+                    "total": 435
+                },
+                {
+                    "code": "",
+                    "name": "6",
+                    "qty": 3,
+                    "unit_price": 145,
+                    "total": 435
+                },
+                {
+                    "code": "",
+                    "name": "7",
+                    "qty": 3,
+                    "unit_price": 145,
+                    "total": 435
+                }
+            ]
+        }
+    ]
+}
