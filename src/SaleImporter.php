@@ -37,11 +37,10 @@ final class SaleImporter {
           continue;
         }
 
-        // Get invoice date from draft (already extracted by parser/preview)
+        // Get invoice date from draft
         $invoiceDate = $inv['invoice_date'] ?? date('Y-m-d');
         
-        // Generate reference_no using invoice date (not current date)
-        // Format: sr-YYYYMMDD-HHMMSS (random work time 09:00-18:00)
+        // Generate reference_no using invoice date
         $hour = str_pad((string)rand(9, 17), 2, '0', STR_PAD_LEFT);
         $min = str_pad((string)rand(0, 59), 2, '0', STR_PAD_LEFT);
         $sec = str_pad((string)rand(0, 59), 2, '0', STR_PAD_LEFT);
@@ -126,11 +125,7 @@ final class SaleImporter {
     ];
   }
 
-  /**
-   * Check if customer exists by name, return ID if exists, otherwise create and return new ID
-   */
   private function getOrCreateCustomer(string $name): int {
-    // First check if exists
     $sel = $this->db->prepare("SELECT id FROM customers WHERE name = ? LIMIT 1");
     $sel->execute([$name]);
     $row = $sel->fetch();
@@ -139,7 +134,6 @@ final class SaleImporter {
       return (int)$row['id'];
     }
 
-    // Create new customer
     $now = Util::nowSql();
     $email = 'unknown+' . Util::slug($name) . '@example.com';
 
@@ -152,11 +146,7 @@ final class SaleImporter {
     return (int)$this->db->lastInsertId();
   }
 
-  /**
-   * Check if product exists by code, return ID if exists, otherwise create and return new ID
-   */
   private function getOrCreateProduct(string $code, string $name, float $price): int {
-    // First check if exists
     $sel = $this->db->prepare("SELECT id FROM products WHERE code = ? LIMIT 1");
     $sel->execute([$code]);
     $row = $sel->fetch();
@@ -165,7 +155,6 @@ final class SaleImporter {
       return (int)$row['id'];
     }
 
-    // Create new product (estimate cost as 70% of sale price)
     $now = Util::nowSql();
     $cost = round($price * 0.7, 2);
     
@@ -183,7 +172,6 @@ final class SaleImporter {
     foreach ($items as $it) $totalQty += (float)($it['qty'] ?? 1);
     $grand = ($decl !== null) ? $decl : $calc;
     
-    // Use invoice date for timestamp
     $timestamp = $date . ' ' . date('H:i:s');
 
     $ins = $this->db->prepare("

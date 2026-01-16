@@ -1,0 +1,413 @@
+{
+    "input_path": "C:\\Users\\fooar\\Downloads\\供應商發票 1月.jpeg",
+    "page_index": null,
+    "page_count": null,
+    "width": 1600,
+    "height": 900,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_layout_detection": true,
+        "use_chart_recognition": false,
+        "format_block_content": false,
+        "merge_layout_blocks": true,
+        "markdown_ignore_labels": [
+            "number",
+            "footnote",
+            "header",
+            "header_image",
+            "footer",
+            "footer_image",
+            "aside_text"
+        ]
+    },
+    "parsing_res_list": [
+        {
+            "block_label": "paragraph_title",
+            "block_content": "广州欧诗贝尔皮具销售单",
+            "block_bbox": [
+                613,
+                55,
+                1119,
+                111
+            ],
+            "block_id": 0,
+            "block_order": 1,
+            "group_id": 0
+        },
+        {
+            "block_label": "text",
+            "block_content": "批次：45009",
+            "block_bbox": [
+                237,
+                119,
+                388,
+                152
+            ],
+            "block_id": 1,
+            "block_order": 2,
+            "group_id": 1
+        },
+        {
+            "block_label": "text",
+            "block_content": "客户：香港麦先生",
+            "block_bbox": [
+                460,
+                122,
+                682,
+                156
+            ],
+            "block_id": 2,
+            "block_order": 3,
+            "group_id": 2
+        },
+        {
+            "block_label": "text",
+            "block_content": "13427527786",
+            "block_bbox": [
+                559,
+                161,
+                695,
+                188
+            ],
+            "block_id": 3,
+            "block_order": 4,
+            "group_id": 3
+        },
+        {
+            "block_label": "text",
+            "block_content": "营业员：管理员（000）",
+            "block_bbox": [
+                831,
+                126,
+                1039,
+                158
+            ],
+            "block_id": 4,
+            "block_order": 5,
+            "group_id": 4
+        },
+        {
+            "block_label": "text",
+            "block_content": "日期：2025-01-10",
+            "block_bbox": [
+                1171,
+                127,
+                1355,
+                158
+            ],
+            "block_id": 5,
+            "block_order": 6,
+            "group_id": 5
+        },
+        {
+            "block_label": "table",
+            "block_content": "<table><tr><td>序号</td><td>款号</td><td>名称</td><td>颜色</td><td>尺码</td><td>数量</td><td>单价</td><td>金额</td><td>备注</td></tr><tr><td>1</td><td>os838</td><td>头层牛皮女包</td><td>黑色</td><td>个</td><td>4</td><td>145</td><td>580</td><td></td></tr><tr><td>2</td><td>os838</td><td>头层牛皮女包</td><td>蓝色</td><td>个</td><td>2</td><td>145</td><td>290</td><td></td></tr><tr><td>3</td><td>os52779</td><td>头层牛皮女包</td><td>黑色</td><td>个</td><td>3</td><td>160</td><td>480</td><td></td></tr><tr><td>4</td><td>os52779</td><td>头层牛皮女包</td><td>杏配乌木色</td><td>个</td><td>3</td><td>160</td><td>480</td><td></td></tr><tr><td>5</td><td>os52900</td><td>牛皮女包</td><td>黑色</td><td>个</td><td>3</td><td>145</td><td>435</td><td></td></tr><tr><td>6</td><td>os52900</td><td>牛皮女包</td><td>灰色</td><td>个</td><td>3</td><td>145</td><td>435</td><td></td></tr><tr><td>7</td><td>os52900</td><td>牛皮女包</td><td>杏色</td><td>个</td><td>3</td><td>145</td><td>435</td><td></td></tr><tr><td>合计</td><td></td><td></td><td></td><td></td><td>21</td><td></td><td>3135</td><td></td></tr></table>",
+            "block_bbox": [
+                254,
+                188,
+                1455,
+                506
+            ],
+            "block_id": 6,
+            "block_order": null,
+            "group_id": 6
+        },
+        {
+            "block_label": "text",
+            "block_content": "本单额：3135元 现金：3135元",
+            "block_bbox": [
+                257,
+                509,
+                642,
+                545
+            ],
+            "block_id": 7,
+            "block_order": 7,
+            "group_id": 7
+        },
+        {
+            "block_label": "text",
+            "block_content": "经办人：管理员",
+            "block_bbox": [
+                253,
+                547,
+                426,
+                580
+            ],
+            "block_id": 8,
+            "block_order": 8,
+            "group_id": 8
+        },
+        {
+            "block_label": "text",
+            "block_content": "备注：",
+            "block_bbox": [
+                694,
+                544,
+                756,
+                574
+            ],
+            "block_id": 9,
+            "block_order": 9,
+            "group_id": 9
+        },
+        {
+            "block_label": "text",
+            "block_content": "电话：020-86325789",
+            "block_bbox": [
+                250,
+                583,
+                481,
+                616
+            ],
+            "block_id": 10,
+            "block_order": 10,
+            "group_id": 10
+        },
+        {
+            "block_label": "text",
+            "block_content": "手机：13710444412",
+            "block_bbox": [
+                888,
+                576,
+                1101,
+                609
+            ],
+            "block_id": 11,
+            "block_order": 11,
+            "group_id": 11
+        },
+        {
+            "block_label": "text",
+            "block_content": "地址：广州市白云区中港皮具城3047-3048档\n提醒：钱款、件数请当面点清，离店概不负责！商品因质量问题15天内有效；本店利薄恕不欠\n不予退还：\n商陆花苹果iPad版V10.4201\n2025-03-30 10:25:05",
+            "block_bbox": [
+                246,
+                614,
+                755,
+                651
+            ],
+            "block_id": 12,
+            "block_order": 12,
+            "group_id": 12
+        },
+        {
+            "block_label": "text",
+            "block_content": "",
+            "block_bbox": [
+                246,
+                645,
+                1217,
+                738
+            ],
+            "block_id": 13,
+            "block_order": 13,
+            "group_id": 12
+        },
+        {
+            "block_label": "seal",
+            "block_content": "",
+            "block_bbox": [
+                1142,
+                463,
+                1444,
+                730
+            ],
+            "block_id": 14,
+            "block_order": null,
+            "group_id": 14
+        }
+    ],
+    "layout_det_res": {
+        "input_path": null,
+        "page_index": null,
+        "boxes": [
+            {
+                "cls_id": 17,
+                "label": "paragraph_title",
+                "score": 0.9698731899261475,
+                "coordinate": [
+                    613.5357666015625,
+                    55.584510803222656,
+                    1119.7125244140625,
+                    111.77845001220703
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8824277520179749,
+                "coordinate": [
+                    237.3655548095703,
+                    119.71685028076172,
+                    388.48760986328125,
+                    152.88812255859375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8539379239082336,
+                "coordinate": [
+                    460.9290771484375,
+                    122.38441467285156,
+                    682.505859375,
+                    156.6826629638672
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8998367786407471,
+                "coordinate": [
+                    559.8010864257812,
+                    161.13278198242188,
+                    695.5598754882812,
+                    188.73165893554688
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9378511905670166,
+                "coordinate": [
+                    831.9820556640625,
+                    126.4899673461914,
+                    1039.5074462890625,
+                    158.93734741210938
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9516693949699402,
+                "coordinate": [
+                    1171.9825439453125,
+                    127.44821166992188,
+                    1355.8016357421875,
+                    158.05337524414062
+                ]
+            },
+            {
+                "cls_id": 21,
+                "label": "table",
+                "score": 0.9801540374755859,
+                "coordinate": [
+                    254.2392578125,
+                    188.12332153320312,
+                    1455.444091796875,
+                    506.5605163574219
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9528793692588806,
+                "coordinate": [
+                    257.815673828125,
+                    509.60357666015625,
+                    642.3262939453125,
+                    545.4346313476562
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9459975957870483,
+                "coordinate": [
+                    253.62954711914062,
+                    547.88720703125,
+                    426.3646545410156,
+                    580.02734375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8999026417732239,
+                "coordinate": [
+                    694.0494384765625,
+                    544.0050048828125,
+                    756.5118408203125,
+                    574.4730224609375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9543289542198181,
+                "coordinate": [
+                    250.48793029785156,
+                    583.748291015625,
+                    481.5693359375,
+                    616.9925537109375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9079709053039551,
+                "coordinate": [
+                    888.2943115234375,
+                    576.4896240234375,
+                    1101.076171875,
+                    609.7982177734375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.960882306098938,
+                "coordinate": [
+                    246.9017333984375,
+                    614.8324584960938,
+                    755.517822265625,
+                    651.6669311523438
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.7678607106208801,
+                "coordinate": [
+                    246.36474609375,
+                    645.5946044921875,
+                    1217.651123046875,
+                    738.6873779296875
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.929815411567688,
+                "coordinate": [
+                    244.47833251953125,
+                    710.8494873046875,
+                    537.6758422851562,
+                    742.4615478515625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.657578706741333,
+                "coordinate": [
+                    731.4881591796875,
+                    700.934814453125,
+                    958.9420166015625,
+                    730.798828125
+                ]
+            },
+            {
+                "cls_id": 20,
+                "label": "seal",
+                "score": 0.951519787311554,
+                "coordinate": [
+                    1142.8656005859375,
+                    463.37030029296875,
+                    1444.8411865234375,
+                    730.0169067382812
+                ]
+            }
+        ]
+    }
+}

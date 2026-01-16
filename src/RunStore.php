@@ -36,15 +36,99 @@ final class RunStore {
     return Util::readJson($path);
   }
 
-  public function saveRawUpload(string $runId, string $zipPath, string $extractDir): void {
+  /**
+   * Save metadata about raw upload (now supports both ZIP and folder uploads)
+   */
+  public function saveRawUpload(string $runId, string $sourcePath, string $filesDir): void {
     $dir = $this->runDir($runId);
     Util::ensureDir($dir);
 
     $meta = [
-      'zip_path' => $zipPath,
-      'extract_dir' => $extractDir,
+      'source_path' => $sourcePath,
+      'files_dir' => $filesDir,
       'saved_at' => Util::nowSql(),
+      'is_folder_upload' => is_dir($sourcePath),
     ];
     file_put_contents($dir . DIRECTORY_SEPARATOR . 'meta.json', json_encode($meta, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+  }
+
+  /**
+   * List all runs
+   */
+  public function listRuns(int $limit = 50): array {
+    $runs = [];
+    $dirs = glob($this->baseDir . '/20*', GLOB_ONLYDIR);
+    
+    if ($dirs === false) return [];
+    
+    // Sort by name descending (newest first)
+    rsort($dirs);
+    
+    $count = 0;
+    foreach ($dirs as $dir) {
+      $runId = basename($dir);
+      
+      // Skip _files and _scan directories
+      if (preg_match('/_(files|scan|unzipped)$/', $runId)) continue;
+      
+      $draftPath = $dir . '/draft.json';
+      if (!file_exists($draftPath)) continue;
+      
+      try {
+        $draft = Util::readJson($draftPath);
+        $runs[] = [
+          'run_id' => $runId,
+          'type' => $draft['type'] ?? 'unknown',
+          'created_at' => $draft['created_at'] ?? '',
+          'invoice_count' => count($draft['invoices'] ?? []),
+          'source' => $draft['source'] ?? [],
+        ];
+        
+        $count++;
+        if ($count >= $limit) break;
+      } catch (Throwable $e) {
+        // Skip invalid drafts
+        continue;
+      }
+    }
+    
+    return $runs;
+  }
+
+  /**
+   * Delete a run and all its files
+   */
+  public function deleteRun(string $runId): bool {
+    $dir = $this->runDir($runId);
+    if (!is_dir($dir)) return false;
+    
+    $this->recursiveDelete($dir);
+    
+    // Also delete related directories (_files, _scan, etc.)
+    $relatedDirs = glob($this->baseDir . "/{$runId}_*", GLOB_ONLYDIR);
+    foreach ($relatedDirs as $relDir) {
+      $this->recursiveDelete($relDir);
+    }
+    
+    return true;
+  }
+
+  private function recursiveDelete(string $dir): void {
+    if (!is_dir($dir)) return;
+    
+    $items = new RecursiveIteratorIterator(
+      new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+      RecursiveIteratorIterator::CHILD_FIRST
+    );
+    
+    foreach ($items as $item) {
+      if ($item->isDir()) {
+        rmdir($item->getPathname());
+      } else {
+        unlink($item->getPathname());
+      }
+    }
+    
+    rmdir($dir);
   }
 }

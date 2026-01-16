@@ -311,6 +311,7 @@ foreach (($draft['invoices'] ?? []) as $idx => $inv) {
     'entity_exists' => $entityId !== null,
     'entity_id' => $entityId,
     'invoice_date' => (string)($inv['invoice_date'] ?? date('Y-m-d')),
+    'invoice_number' => (string)($inv['invoice_number'] ?? ''),
     'declared_total' => $inv['declared_total'],
     'calc_total' => (float)($inv['calc_total'] ?? 0),
     'items' => $items,
@@ -318,6 +319,7 @@ foreach (($draft['invoices'] ?? []) as $idx => $inv) {
 }
 
 $csrf = $_SESSION['csrf'] ?? '';
+$parserInfo = $draft['source'] ?? [];
 ?>
 <!doctype html>
 <html>
@@ -338,6 +340,8 @@ $csrf = $_SESSION['csrf'] ?? '';
       padding: 24px;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .header-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -353,6 +357,30 @@ $csrf = $_SESSION['csrf'] ?? '';
     }
     .type-purchase { background: #dbeafe; color: #1e40af; }
     .type-sale { background: #dcfce7; color: #15803d; }
+    .parser-info {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #666;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+    .parser-info span { margin-right: 16px; }
+    .confidence-bar {
+      display: inline-block;
+      width: 60px;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+    .confidence-fill {
+      height: 100%;
+      background: #059669;
+      border-radius: 4px;
+    }
     
     .invoice-card {
       max-width: 1400px;
@@ -516,16 +544,28 @@ $csrf = $_SESSION['csrf'] ?? '';
 <div class="toast toast-success" id="toast"></div>
 
 <div class="header">
-  <div>
-    <h1>
-      Preview & Edit
-      <span class="type-badge type-<?=h($type)?>"><?=h(ucfirst($type))?></span>
-    </h1>
-    <p style="color: #666; font-size: 14px; margin-top: 8px;">
-      Run ID: <?=h($runId)?> | Invoices: <?=h((string)count($invoicesJson))?>
-    </p>
+  <div class="header-top">
+    <div>
+      <h1>
+        Preview & Edit
+        <span class="type-badge type-<?=h($type)?>"><?=h(ucfirst($type))?></span>
+      </h1>
+      <p style="color: #666; font-size: 14px; margin-top: 8px;">
+        Run ID: <?=h($runId)?> | Invoices: <?=h((string)count($invoicesJson))?>
+      </p>
+    </div>
+    <button class="btn btn-secondary" onclick="saveAllDrafts()">💾 Save Changes</button>
   </div>
-  <button class="btn btn-secondary" onclick="saveAllDrafts()">💾 Save Changes</button>
+  <div class="parser-info">
+    <span>📄 <strong>Format:</strong> <?=h($parserInfo['parser_name'] ?? 'Unknown')?></span>
+    <span>📁 <strong>Files:</strong> <?=h((string)($parserInfo['file_count'] ?? 0))?></span>
+    <span>📊 <strong>Confidence:</strong>
+      <span class="confidence-bar">
+        <span class="confidence-fill" style="width: <?=h((string)(($parserInfo['confidence'] ?? 0) * 100))?>%"></span>
+      </span>
+      <?=h((string)round(($parserInfo['confidence'] ?? 0) * 100))?>%
+    </span>
+  </div>
 </div>
 
 <div id="invoices-container"></div>
@@ -597,11 +637,7 @@ function updateItem(invIdx, itemIdx, field, value) {
 
 function updateInvoice(invIdx, field, value) {
   if (field === 'entity_name') {
-    if (isPurchase) {
-      invoices[invIdx].entity_name = value;
-    } else {
-      invoices[invIdx].entity_name = value;
-    }
+    invoices[invIdx].entity_name = value;
     checkEntityExists(invIdx, value);
   } else if (field === 'invoice_date') {
     invoices[invIdx].invoice_date = value;
@@ -773,7 +809,6 @@ function renderAllInvoices() {
 }
 
 async function saveAllDrafts() {
-  // Prepare data for saving
   const saveData = {
     run_id: runId,
     invoices: invoices.map(inv => ({
@@ -781,6 +816,7 @@ async function saveAllDrafts() {
       supplier_name: isPurchase ? inv.entity_name : '',
       customer_name: !isPurchase ? inv.entity_name : '',
       invoice_date: inv.invoice_date,
+      invoice_number: inv.invoice_number || '',
       declared_total: inv.declared_total,
       calc_total: inv.calc_total,
       items: inv.items.map(it => ({

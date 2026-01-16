@@ -19,7 +19,7 @@ return [
     'rel' => 0.02,
   ],
 
-  // 你的系统默认值（按你表结构改）
+  // 系统默认值
   'defaults' => [
     'user_id' => 1,
     'warehouse_id' => 1,

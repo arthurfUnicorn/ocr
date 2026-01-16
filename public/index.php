@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/Util.php';
 require_once __DIR__ . '/../src/Db.php';
-require_once __DIR__ . '/../src/CsvWriter.php';
-require_once __DIR__ . '/../src/DocParserInvoiceParser.php';
+require_once __DIR__ . '/../src/FileScanner.php';
+require_once __DIR__ . '/../src/ParserRegistry.php';
+require_once __DIR__ . '/../src/Parsers/ParserInterface.php';
+require_once __DIR__ . '/../src/Parsers/AbstractParser.php';
+require_once __DIR__ . '/../src/Parsers/DocParserJsonParser.php';
+require_once __DIR__ . '/../src/Parsers/GenericMarkdownParser.php';
+require_once __DIR__ . '/../src/RunStore.php';
 require_once __DIR__ . '/../src/PurchaseImporter.php';
 require_once __DIR__ . '/../src/SaleImporter.php';
-require_once __DIR__ . '/../src/RunStore.php';
 
 session_start();
 
@@ -37,8 +41,106 @@ function requireCsrf(): void {
 
 function h(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); }
 
-/** ROUTE: upload ZIP -> build draft -> redirect preview **/
+/** ROUTE: API - Get available parsers **/
+if ($action === 'parsers' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+  header('Content-Type: application/json');
+  $registry = new ParserRegistry();
+  $parsers = [];
+  foreach ($registry->getAllParsers() as $id => $parser) {
+    $parsers[] = [
+      'id' => $id,
+      'name' => $parser->getName(),
+      'extensions' => $parser->getSupportedExtensions(),
+    ];
+  }
+  echo json_encode(['parsers' => $parsers]);
+  exit;
+}
+
+/** ROUTE: upload files -> build draft -> redirect preview **/
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
+  try {
+    requireCsrf();
+
+    $type = $_POST['type'] ?? '';
+    if (!in_array($type, ['purchase', 'sale'], true)) {
+      throw new RuntimeException('Invalid type. Must be purchase or sale.');
+    }
+
+    $forceParserId = $_POST['parser'] ?? null;
+    if ($forceParserId === 'auto') {
+      $forceParserId = null;
+    }
+
+    // Generate run ID
+    $runId = date('Ymd_His') . '_' . bin2hex(random_bytes(4));
+    $targetDir = $config['paths']['uploads'] . "/{$runId}_files";
+
+    // Process uploaded files
+    $scanner = new FileScanner(['json', 'md']);
+    
+    if (!isset($_FILES['files']) || empty($_FILES['files']['name'][0])) {
+      throw new RuntimeException('No files uploaded');
+    }
+
+    $scanResult = $scanner->processUploadedFiles($_FILES['files'], $targetDir);
+    
+    if ($scanResult['count'] === 0) {
+      throw new RuntimeException('No valid JSON or MD files found in upload');
+    }
+
+    // Load file contents
+    $files = $scanner->loadFileContents($scanResult['files']);
+    $groups = $scanner->groupByBaseName($scanResult['files']);
+    
+    // Detect and parse using registry
+    $registry = new ParserRegistry();
+    $parseResult = $registry->parse($files, $forceParserId);
+
+    if (empty($parseResult['invoices'])) {
+      throw new RuntimeException('No invoices could be extracted from the uploaded files');
+    }
+
+    // Build draft
+    $draft = [
+      'run_id' => $runId,
+      'type' => $type,
+      'created_at' => Util::nowSql(),
+      'source' => [
+        'upload_type' => 'folder',
+        'file_count' => $scanResult['count'],
+        'file_summary' => $scanner->summarize($scanResult['files']),
+      ],
+      'parser' => [
+        'id' => $parseResult['parser_used'],
+        'name' => $parseResult['parser_name'],
+        'confidence' => $parseResult['confidence'],
+      ],
+      'invoices' => $parseResult['invoices'],
+    ];
+
+    $store->saveDraft($runId, $draft);
+    $store->saveRawUpload($runId, $targetDir, $targetDir);
+
+    header('Location: preview.php?run=' . urlencode($runId));
+    exit;
+
+  } catch (Throwable $e) {
+    http_response_code(500);
+    echo "<!doctype html><html><head><meta charset='utf-8'><title>Error</title>";
+    echo "<style>body{font-family:sans-serif;padding:40px;max-width:600px;margin:0 auto;}";
+    echo ".error{background:#fef2f2;border:1px solid #fecaca;padding:20px;border-radius:8px;color:#991b1b;}";
+    echo "a{color:#2563eb;}</style></head><body>";
+    echo "<h1>❌ Upload Error</h1>";
+    echo "<div class='error'><pre>" . h($e->getMessage()) . "</pre></div>";
+    echo "<p style='margin-top:20px;'><a href='index.php'>← Back to upload</a></p>";
+    echo "</body></html>";
+    exit;
+  }
+}
+
+/** ROUTE: upload ZIP (legacy support) **/
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload_zip') {
   try {
     requireCsrf();
 
@@ -70,46 +172,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
     $zip->extractTo($extractDir);
     $zip->close();
 
-    // Build draft from JSON outputs
-    $parser = new DocParserInvoiceParser();
-    $jsonFiles = Util::listFiles($extractDir, ['json']);
+    // Scan and parse using new system
+    $scanner = new FileScanner(['json', 'md']);
+    $scanResult = ['files' => $scanner->scanDirectory($extractDir)];
+    $files = $scanner->loadFileContents($scanResult['files']);
+    
+    $registry = new ParserRegistry();
+    $parseResult = $registry->parse($files);
 
     $draft = [
       'run_id' => $runId,
       'type' => $type,
       'created_at' => Util::nowSql(),
       'source' => [
+        'upload_type' => 'zip',
         'zip_name' => $orig,
-        'json_count' => count($jsonFiles),
+        'file_count' => count($scanResult['files']),
       ],
-      'invoices' => [],
+      'parser' => [
+        'id' => $parseResult['parser_used'],
+        'name' => $parseResult['parser_name'],
+        'confidence' => $parseResult['confidence'],
+      ],
+      'invoices' => $parseResult['invoices'],
     ];
-
-    foreach ($jsonFiles as $jf) {
-      $doc = Util::readJson($jf);
-      $inv = $parser->parse($doc);
-
-      // Use date from parser or fallback to today
-      $invoiceDate = $inv['invoice_date'] ?? date('Y-m-d');
-
-      $draft['invoices'][] = [
-        'source_file' => basename($jf),
-        'supplier_name' => (string)($inv['supplier_name'] ?? ''),
-        'customer_name' => (string)($inv['supplier_name'] ?? ''), // Use same parser for now
-        'invoice_date' => $invoiceDate,
-        'declared_total' => $inv['declared_total'],
-        'calc_total' => (float)($inv['calc_total'] ?? 0),
-        'items' => array_values(array_map(function($it){
-          return [
-            'code' => (string)($it['code'] ?? ''),
-            'name' => (string)($it['name'] ?? ''),
-            'qty' => (float)($it['qty'] ?? 1),
-            'unit_price' => (float)($it['unit_price'] ?? 0),
-            'total' => (float)($it['total'] ?? 0),
-          ];
-        }, $inv['items'] ?? [])),
-      ];
-    }
 
     $store->saveDraft($runId, $draft);
     $store->saveRawUpload($runId, $zipPath, $extractDir);
@@ -125,12 +211,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
 }
 
 /** DEFAULT: upload page **/
+$registry = new ParserRegistry();
+$parsers = $registry->getAllParsers();
 ?>
 <!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Invoice Importer - Choose Type</title>
+  <title>Invoice Importer - Upload</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { 
@@ -139,38 +227,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       padding: 40px 20px;
     }
     .container { 
-      max-width: 680px; 
+      max-width: 720px; 
       margin: 0 auto;
       background: white;
       border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       padding: 40px;
     }
-    h1 { 
-      font-size: 28px;
-      color: #1a1a1a;
-      margin-bottom: 12px;
-    }
-    .subtitle {
-      color: #666;
-      margin-bottom: 32px;
-      font-size: 15px;
-    }
-    .form-group {
-      margin-bottom: 24px;
-    }
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #333;
-      font-size: 14px;
-    }
-    .type-selector {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 24px;
-    }
+    h1 { font-size: 28px; color: #1a1a1a; margin-bottom: 8px; }
+    .subtitle { color: #666; margin-bottom: 32px; font-size: 15px; }
+    
+    .form-group { margin-bottom: 24px; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; color: #333; font-size: 14px; }
+    
+    .type-selector { display: flex; gap: 16px; margin-bottom: 24px; }
     .type-option {
       flex: 1;
       border: 2px solid #e0e0e0;
@@ -180,65 +250,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       transition: all 0.2s;
       position: relative;
     }
-    .type-option:hover {
-      border-color: #2563eb;
-      background: #f8faff;
-    }
-    .type-option.selected {
-      border-color: #2563eb;
-      background: #eff6ff;
-    }
-    .type-option input[type="radio"] {
-      position: absolute;
-      opacity: 0;
-    }
-    .type-content {
-      text-align: center;
-    }
-    .type-icon {
-      font-size: 32px;
-      margin-bottom: 12px;
-    }
-    .type-title {
-      font-weight: 600;
-      font-size: 16px;
-      color: #1a1a1a;
-      margin-bottom: 4px;
-    }
-    .type-desc {
-      font-size: 13px;
-      color: #666;
-    }
+    .type-option:hover { border-color: #2563eb; background: #f8faff; }
+    .type-option.selected { border-color: #2563eb; background: #eff6ff; }
+    .type-option input[type="radio"] { position: absolute; opacity: 0; }
+    .type-content { text-align: center; }
+    .type-icon { font-size: 32px; margin-bottom: 12px; }
+    .type-title { font-weight: 600; font-size: 16px; color: #1a1a1a; margin-bottom: 4px; }
+    .type-desc { font-size: 13px; color: #666; }
     .check-icon {
       display: none;
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 24px;
-      height: 24px;
-      background: #2563eb;
-      border-radius: 50%;
-      color: white;
-      font-size: 14px;
-      line-height: 24px;
-      text-align: center;
+      position: absolute; top: 12px; right: 12px;
+      width: 24px; height: 24px;
+      background: #2563eb; border-radius: 50%;
+      color: white; font-size: 14px; line-height: 24px; text-align: center;
     }
-    .type-option.selected .check-icon {
-      display: block;
-    }
-    input[type="file"] {
-      width: 100%;
+    .type-option.selected .check-icon { display: block; }
+
+    .upload-tabs { display: flex; gap: 0; margin-bottom: 16px; }
+    .tab-btn {
+      flex: 1;
       padding: 12px;
+      border: 1px solid #d0d0d0;
+      background: #f9f9f9;
+      cursor: pointer;
+      font-weight: 500;
+      color: #666;
+      transition: all 0.2s;
+    }
+    .tab-btn:first-child { border-radius: 8px 0 0 8px; }
+    .tab-btn:last-child { border-radius: 0 8px 8px 0; }
+    .tab-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+    
+    .upload-zone {
       border: 2px dashed #d0d0d0;
       border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
       cursor: pointer;
+      transition: all 0.2s;
+      background: #fafafa;
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: #2563eb; background: #f8faff; }
+    .upload-zone.has-files { border-color: #22c55e; background: #f0fdf4; }
+    .upload-icon { font-size: 48px; margin-bottom: 16px; color: #9ca3af; }
+    .upload-text { color: #6b7280; font-size: 14px; }
+    .upload-hint { color: #9ca3af; font-size: 12px; margin-top: 8px; }
+    
+    .file-list {
+      margin-top: 16px;
+      max-height: 200px;
+      overflow-y: auto;
+      text-align: left;
+    }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .file-item .icon { color: #6b7280; }
+    .file-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-item .size { color: #9ca3af; font-size: 12px; }
+    .file-item .remove { color: #ef4444; cursor: pointer; padding: 4px; }
+    
+    .parser-selector { margin-bottom: 24px; }
+    .parser-selector select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
       font-size: 14px;
+      background: white;
     }
-    input[type="file"]:hover {
+    .parser-selector select:focus {
+      outline: none;
       border-color: #2563eb;
-      background: #f8faff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
-    button {
+    .parser-hint { font-size: 12px; color: #6b7280; margin-top: 6px; }
+    
+    button[type="submit"] {
       width: 100%;
       padding: 14px 24px;
       background: #2563eb;
@@ -250,13 +346,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       cursor: pointer;
       transition: background 0.2s;
     }
-    button:hover {
-      background: #1d4ed8;
-    }
-    button:disabled {
-      background: #d0d0d0;
-      cursor: not-allowed;
-    }
+    button[type="submit"]:hover { background: #1d4ed8; }
+    button[type="submit"]:disabled { background: #d0d0d0; cursor: not-allowed; }
+    
     .info-box {
       background: #f0f9ff;
       border: 1px solid #bae6fd;
@@ -266,25 +358,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       font-size: 14px;
       color: #0369a1;
     }
-    .info-box strong {
-      display: block;
-      margin-bottom: 8px;
-    }
+    .info-box strong { display: block; margin-bottom: 8px; }
+    .info-box ul { margin-left: 20px; margin-top: 8px; }
+    
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📦 Invoice Importer</h1>
-    <p class="subtitle">Upload your doc_parser ZIP file and select invoice type</p>
+    <p class="subtitle">Upload invoice files for parsing and import</p>
 
     <form method="post" action="?action=upload" enctype="multipart/form-data" id="uploadForm">
       <?=csrfField()?>
 
       <div class="form-group">
-        <label>Select Invoice Type</label>
+        <label>1. Select Invoice Type</label>
         <div class="type-selector">
-          <label class="type-option" id="opt-purchase">
-            <input type="radio" name="type" value="purchase" required>
+          <label class="type-option selected" id="opt-purchase">
+            <input type="radio" name="type" value="purchase" required checked>
             <div class="type-content">
               <div class="type-icon">🛒</div>
               <div class="type-title">Purchase Invoice</div>
@@ -306,26 +398,267 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'upload') {
       </div>
 
       <div class="form-group">
-        <label>Upload ZIP File</label>
-        <input type="file" name="zip" accept=".zip" required />
+        <label>2. Upload Files</label>
+        <div class="upload-tabs">
+          <button type="button" class="tab-btn active" data-tab="folder">📁 Folder Upload</button>
+          <button type="button" class="tab-btn" data-tab="files">📄 Select Files</button>
+        </div>
+        
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-icon">📂</div>
+          <div class="upload-text">
+            <span id="uploadPrompt">Click or drag a folder here</span>
+          </div>
+          <div class="upload-hint">Accepts JSON and MD files • Other files will be ignored</div>
+          
+          <!-- Folder upload (webkitdirectory) -->
+          <input type="file" name="files[]" id="folderInput" webkitdirectory multiple class="hidden">
+          <!-- Files upload -->
+          <input type="file" name="files[]" id="filesInput" accept=".json,.md" multiple class="hidden">
+        </div>
+        
+        <div class="file-list hidden" id="fileList"></div>
       </div>
 
-      <button type="submit">Continue to Preview →</button>
+      <div class="form-group parser-selector">
+        <label>3. Parser Selection (Optional)</label>
+        <select name="parser">
+          <option value="auto">🔍 Auto-detect format</option>
+          <?php foreach ($parsers as $id => $parser): ?>
+          <option value="<?=h($id)?>"><?=h($parser->getName())?></option>
+          <?php endforeach; ?>
+        </select>
+        <div class="parser-hint">Leave as "Auto-detect" unless you know the specific format</div>
+      </div>
+
+      <button type="submit" id="submitBtn" disabled>Continue to Preview →</button>
 
       <div class="info-box">
-        <strong>📋 What's inside the ZIP?</strong>
-        Your ZIP should contain JSON files from PaddleOCR's doc_parser output. Each JSON file represents one invoice document.
+        <strong>📋 Supported File Types</strong>
+        The system accepts JSON and MD files from various OCR/parsing tools:
+        <ul>
+          <li><strong>PaddleOCR doc_parser</strong> - JSON with parsing_res_list</li>
+          <li><strong>Markdown invoices</strong> - MD files with tables</li>
+          <li>More formats coming soon...</li>
+        </ul>
       </div>
     </form>
   </div>
 
   <script>
+    const uploadZone = document.getElementById('uploadZone');
+    const folderInput = document.getElementById('folderInput');
+    const filesInput = document.getElementById('filesInput');
+    const fileList = document.getElementById('fileList');
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadPrompt = document.getElementById('uploadPrompt');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    
+    let currentTab = 'folder';
+    let selectedFiles = [];
+    
+    // Tab switching
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTab = btn.dataset.tab;
+        updatePrompt();
+        clearFiles();
+      });
+    });
+    
+    function updatePrompt() {
+      uploadPrompt.textContent = currentTab === 'folder' 
+        ? 'Click or drag a folder here'
+        : 'Click or drag files here';
+    }
+    
+    // Type selector
     document.querySelectorAll('.type-option').forEach(opt => {
       opt.addEventListener('click', function() {
         document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
         this.classList.add('selected');
         this.querySelector('input[type="radio"]').checked = true;
       });
+    });
+    
+    // Upload zone click
+    uploadZone.addEventListener('click', () => {
+      if (currentTab === 'folder') {
+        folderInput.click();
+      } else {
+        filesInput.click();
+      }
+    });
+    
+    // Drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+      uploadZone.addEventListener(e, (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+      });
+    });
+    
+    uploadZone.addEventListener('dragover', () => uploadZone.classList.add('dragover'));
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    
+    uploadZone.addEventListener('drop', (e) => {
+      uploadZone.classList.remove('dragover');
+      const items = e.dataTransfer.items;
+      
+      // Handle folder drop (if supported)
+      if (items && items.length > 0 && items[0].webkitGetAsEntry) {
+        const entries = [];
+        for (let item of items) {
+          const entry = item.webkitGetAsEntry();
+          if (entry) entries.push(entry);
+        }
+        processEntries(entries);
+      } else {
+        // Fallback to files
+        handleFiles(e.dataTransfer.files);
+      }
+    });
+    
+    // Process directory entries (for drag & drop)
+    async function processEntries(entries) {
+      const files = [];
+      
+      async function readEntry(entry, path = '') {
+        if (entry.isFile) {
+          return new Promise((resolve) => {
+            entry.file(file => {
+              // Add webkitRelativePath-like property
+              Object.defineProperty(file, 'webkitRelativePath', {
+                value: path + file.name,
+                writable: false
+              });
+              files.push(file);
+              resolve();
+            });
+          });
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          return new Promise((resolve) => {
+            reader.readEntries(async (entries) => {
+              for (const e of entries) {
+                await readEntry(e, path + entry.name + '/');
+              }
+              resolve();
+            });
+          });
+        }
+      }
+      
+      for (const entry of entries) {
+        await readEntry(entry);
+      }
+      
+      handleFiles(files);
+    }
+    
+    // File input change
+    folderInput.addEventListener('change', (e) => handleFiles(e.target.files));
+    filesInput.addEventListener('change', (e) => handleFiles(e.target.files));
+    
+    function handleFiles(files) {
+      selectedFiles = [];
+      const validExts = ['json', 'md'];
+      
+      for (const file of files) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (validExts.includes(ext)) {
+          selectedFiles.push(file);
+        }
+      }
+      
+      updateFileList();
+    }
+    
+    function updateFileList() {
+      if (selectedFiles.length === 0) {
+        fileList.classList.add('hidden');
+        uploadZone.classList.remove('has-files');
+        submitBtn.disabled = true;
+        return;
+      }
+      
+      uploadZone.classList.add('has-files');
+      fileList.classList.remove('hidden');
+      submitBtn.disabled = false;
+      
+      // Group by extension
+      const byExt = {};
+      selectedFiles.forEach(f => {
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (!byExt[ext]) byExt[ext] = 0;
+        byExt[ext]++;
+      });
+      
+      const summary = Object.entries(byExt).map(([e, c]) => `${c} ${e.toUpperCase()}`).join(', ');
+      uploadPrompt.textContent = `${selectedFiles.length} files selected (${summary})`;
+      
+      // Show file list (max 50)
+      const displayFiles = selectedFiles.slice(0, 50);
+      fileList.innerHTML = displayFiles.map((file, i) => `
+        <div class="file-item">
+          <span class="icon">${file.name.endsWith('.json') ? '📄' : '📝'}</span>
+          <span class="name" title="${file.webkitRelativePath || file.name}">${file.name}</span>
+          <span class="size">${formatSize(file.size)}</span>
+          <span class="remove" onclick="removeFile(${i})">✕</span>
+        </div>
+      `).join('');
+      
+      if (selectedFiles.length > 50) {
+        fileList.innerHTML += `<div style="text-align:center;color:#6b7280;font-size:12px;padding:8px;">...and ${selectedFiles.length - 50} more files</div>`;
+      }
+      
+      // Update the file input with selected files
+      updateFormFiles();
+    }
+    
+    function removeFile(idx) {
+      selectedFiles.splice(idx, 1);
+      updateFileList();
+    }
+    
+    function clearFiles() {
+      selectedFiles = [];
+      folderInput.value = '';
+      filesInput.value = '';
+      updateFileList();
+    }
+    
+    function updateFormFiles() {
+      // Create a new DataTransfer to update the input
+      const dt = new DataTransfer();
+      selectedFiles.forEach(file => dt.items.add(file));
+      
+      if (currentTab === 'folder') {
+        // For folder upload, we need to use the actual input since webkitdirectory was used
+        // The files are already in folderInput from the change event
+      } else {
+        filesInput.files = dt.files;
+      }
+    }
+    
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+    
+    // Form submission
+    document.getElementById('uploadForm').addEventListener('submit', function(e) {
+      if (selectedFiles.length === 0) {
+        e.preventDefault();
+        alert('Please select files to upload');
+        return;
+      }
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Uploading...';
     });
   </script>
 </body>
