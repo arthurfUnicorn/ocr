@@ -1,0 +1,223 @@
+{
+    "input_path": "C:\\Users\\fooar\\Downloads\\供應商發票1.jpg",
+    "page_index": null,
+    "page_count": null,
+    "width": 900,
+    "height": 1600,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_layout_detection": true,
+        "use_chart_recognition": false,
+        "format_block_content": true,
+        "merge_layout_blocks": true,
+        "markdown_ignore_labels": [
+            "number",
+            "footnote",
+            "header",
+            "header_image",
+            "footer",
+            "footer_image",
+            "aside_text"
+        ]
+    },
+    "parsing_res_list": [
+        {
+            "block_label": "text",
+            "block_content": "7&Bplus+",
+            "block_bbox": [
+                60,
+                259,
+                340,
+                345
+            ],
+            "block_id": 0,
+            "block_order": 1,
+            "group_id": 0
+        },
+        {
+            "block_label": "text",
+            "block_content": "Flat G43A, G/F,\n\nAllied Plaza,\n\n760 Nathan Road,\n\nPrince Edward",
+            "block_bbox": [
+                56,
+                410,
+                450,
+                488
+            ],
+            "block_id": 1,
+            "block_order": 2,
+            "group_id": 1
+        },
+        {
+            "block_label": "paragraph_title",
+            "block_content": "## I NVOICE",
+            "block_bbox": [
+                377,
+                391,
+                507,
+                420
+            ],
+            "block_id": 2,
+            "block_order": 3,
+            "group_id": 2
+        },
+        {
+            "block_label": "paragraph_title",
+            "block_content": "## T & B plus+",
+            "block_bbox": [
+                549,
+                280,
+                647,
+                300
+            ],
+            "block_id": 3,
+            "block_order": 4,
+            "group_id": 3
+        },
+        {
+            "block_label": "text",
+            "block_content": "(wholly owned by Jin Hai Fashion Trading Co. Ltd.)\n\n9/F., Pearl Oriental Tower, 225 Nathan Road, Kowloon\n\nTel: 2314 4889\n\nFax: 2736 4566",
+            "block_bbox": [
+                547,
+                298,
+                821,
+                341
+            ],
+            "block_id": 4,
+            "block_order": 5,
+            "group_id": 4
+        },
+        {
+            "block_label": "text",
+            "block_content": "Nº 000694",
+            "block_bbox": [
+                581,
+                392,
+                708,
+                417
+            ],
+            "block_id": 5,
+            "block_order": 6,
+            "group_id": 5
+        },
+        {
+            "block_label": "text",
+            "block_content": "Date 14 Jan 2025",
+            "block_bbox": [
+                580,
+                444,
+                834,
+                487
+            ],
+            "block_id": 6,
+            "block_order": 7,
+            "group_id": 6
+        },
+        {
+            "block_label": "table",
+            "block_content": "\n<table border=1 style='margin: auto; width: max-content;'><tr><td style='text-align: center;'>Code No.</td><td style='text-align: center;'>Description</td><td style='text-align: center;'>Quantity</td><td style='text-align: center;'>Unit Price</td><td style='text-align: center;'>Amount</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>PONT22450832</td><td style='text-align: center;'>1</td><td style='text-align: center;'>$259</td><td style='text-align: center;'>$259</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>LUEUKA360923</td><td style='text-align: center;'>2</td><td style='text-align: center;'>$149</td><td style='text-align: center;'>$298</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>BON21188</td><td style='text-align: center;'>1</td><td style='text-align: center;'>$399</td><td style='text-align: center;'>$399</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>KRIFW2437822</td><td style='text-align: center;'>1</td><td style='text-align: center;'>$259</td><td style='text-align: center;'>$259</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>KRIFW2434018</td><td style='text-align: center;'>2</td><td style='text-align: center;'>$229</td><td style='text-align: center;'>$458</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>PONT22480512</td><td style='text-align: center;'>1</td><td style='text-align: center;'>$279</td><td style='text-align: center;'>$279</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>VMVFSH-4673D</td><td style='text-align: center;'>1</td><td style='text-align: center;'>$579</td><td style='text-align: center;'>$579</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>VMVFPT-4690D</td><td style='text-align: center;'>1</td><td style='text-align: center;'>$609</td><td style='text-align: center;'>$609</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>INA104137</td><td style='text-align: center;'>2</td><td style='text-align: center;'>$319</td><td style='text-align: center;'>$638</td></tr><tr><td style='text-align: center;'></td><td style='text-align: center;'>PONT22480211</td><td style='text-align: center;'>1</td><td style='text-align: center;'>$379</td><td style='text-align: center;'>$379</td></tr></table>",
+            "block_bbox": [
+                30,
+                483,
+                831,
+                1386
+            ],
+            "block_id": 7,
+            "block_order": null,
+            "group_id": 7
+        }
+    ],
+    "layout_det_res": {
+        "input_path": null,
+        "page_index": null,
+        "boxes": [
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.7581124305725098,
+                "coordinate": [
+                    60.176544189453125,
+                    259.70941162109375,
+                    340.8347473144531,
+                    345.28082275390625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8854221105575562,
+                "coordinate": [
+                    56.9945068359375,
+                    410.20831298828125,
+                    450.2821044921875,
+                    488.6666259765625
+                ]
+            },
+            {
+                "cls_id": 17,
+                "label": "paragraph_title",
+                "score": 0.6923884749412537,
+                "coordinate": [
+                    377.4037170410156,
+                    391.8621826171875,
+                    507.1960144042969,
+                    420.816650390625
+                ]
+            },
+            {
+                "cls_id": 17,
+                "label": "paragraph_title",
+                "score": 0.5260105133056641,
+                "coordinate": [
+                    549.7025756835938,
+                    280.80206298828125,
+                    647.4324340820312,
+                    300.5782470703125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8380028605461121,
+                "coordinate": [
+                    547.8463745117188,
+                    298.37225341796875,
+                    821.8270874023438,
+                    341.37799072265625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.7909448742866516,
+                "coordinate": [
+                    581.714111328125,
+                    392.9273681640625,
+                    708.863037109375,
+                    417.41522216796875
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.558405876159668,
+                "coordinate": [
+                    580.0010986328125,
+                    444.803466796875,
+                    834.59228515625,
+                    487.00042724609375
+                ]
+            },
+            {
+                "cls_id": 21,
+                "label": "table",
+                "score": 0.9508386850357056,
+                "coordinate": [
+                    30.481689453125,
+                    483.6695556640625,
+                    831.962646484375,
+                    1386.6632080078125
+                ]
+            }
+        ]
+    }
+}

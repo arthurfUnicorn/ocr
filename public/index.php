@@ -631,15 +631,16 @@ $parsers = $registry->getAllParsers();
     }
     
     function updateFormFiles() {
-      // Create a new DataTransfer to update the input
       const dt = new DataTransfer();
       selectedFiles.forEach(file => dt.items.add(file));
       
       if (currentTab === 'folder') {
-        // For folder upload, we need to use the actual input since webkitdirectory was used
-        // The files are already in folderInput from the change event
+        // 清空另一個 input，避免衝突
+        filesInput.files = new DataTransfer().files;
       } else {
         filesInput.files = dt.files;
+        // 清空 folder input，避免衝突
+        folderInput.files = new DataTransfer().files;
       }
     }
     
@@ -655,6 +656,18 @@ $parsers = $registry->getAllParsers();
         e.preventDefault();
         alert('Please select files to upload');
         return;
+      }
+      
+      // 確保正確的 input 有文件
+      const dt = new DataTransfer();
+      selectedFiles.forEach(file => dt.items.add(file));
+      
+      if (currentTab === 'folder') {
+        // 如果是 folder 模式，文件已經在 folderInput
+        filesInput.disabled = true;  // 禁用另一個 input
+      } else {
+        filesInput.files = dt.files;
+        folderInput.disabled = true;  // 禁用另一個 input
       }
       
       submitBtn.disabled = true;
