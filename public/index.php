@@ -644,6 +644,16 @@ $parsers = $registry->getAllParsers();
       if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
       return (bytes/1024/1024).toFixed(1) + ' MB';
     }
+
+    document.getElementById('uploadForm').addEventListener('submit', (e) => {
+      if (currentTab === 'folder') {
+        filesInput.disabled = true;
+        filesInput.name = '';
+      } else {
+        folderInput.disabled = true;
+        folderInput.name = '';
+      }
+    });
   </script>
 </body>
 </html>

@@ -1,0 +1,179 @@
+{
+    "run_id": "20260119_024012_1332136f",
+    "type": "purchase",
+    "created_at": "2026-01-19 02:40:12",
+    "source": {
+        "upload_type": "folder",
+        "file_count": 3,
+        "file_summary": {
+            "total_files": 3,
+            "by_extension": {
+                "md": 2,
+                "json": 1
+            },
+            "total_size": 14344,
+            "total_size_human": "14 KB"
+        }
+    },
+    "parser": {
+        "id": "doc_parser_json",
+        "name": "PaddleOCR DocParser JSON",
+        "confidence": 1
+    },
+    "invoices": [
+        {
+            "source_file": "供應商發票1_p1.json",
+            "format_detected": "doc_parser_json",
+            "supplier_name": "Flat G43A, G\/F, Allied Plaza, 760 Nathan Road, Prince Edward",
+            "customer_name": "",
+            "invoice_date": null,
+            "invoice_number": null,
+            "declared_total": null,
+            "calc_total": 4157,
+            "currency": null,
+            "items": [
+                {
+                    "code": "",
+                    "name": "PONT22450832",
+                    "description": "",
+                    "qty": 1,
+                    "unit": "",
+                    "unit_price": 259,
+                    "total": 259,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                },
+                {
+                    "code": "",
+                    "name": "LUEUKA360923",
+                    "description": "",
+                    "qty": 2,
+                    "unit": "",
+                    "unit_price": 149,
+                    "total": 298,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                },
+                {
+                    "code": "",
+                    "name": "BON21188",
+                    "description": "",
+                    "qty": 1,
+                    "unit": "",
+                    "unit_price": 399,
+                    "total": 399,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                },
+                {
+                    "code": "",
+                    "name": "KRIFW2437822",
+                    "description": "",
+                    "qty": 1,
+                    "unit": "",
+                    "unit_price": 259,
+                    "total": 259,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                },
+                {
+                    "code": "",
+                    "name": "KRIFW2434018",
+                    "description": "",
+                    "qty": 2,
+                    "unit": "",
+                    "unit_price": 229,
+                    "total": 458,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                },
+                {
+                    "code": "",
+                    "name": "PONT22480512",
+                    "description": "",
+                    "qty": 1,
+                    "unit": "",
+                    "unit_price": 279,
+                    "total": 279,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                },
+                {
+                    "code": "",
+                    "name": "VMVFSH-4673D",
+                    "description": "",
+                    "qty": 1,
+                    "unit": "",
+                    "unit_price": 579,
+                    "total": 579,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                },
+                {
+                    "code": "",
+                    "name": "VMVFPT-4690D",
+                    "description": "",
+                    "qty": 1,
+                    "unit": "",
+                    "unit_price": 609,
+                    "total": 609,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                },
+                {
+                    "code": "",
+                    "name": "INA104137",
+                    "description": "",
+                    "qty": 2,
+                    "unit": "",
+                    "unit_price": 319,
+                    "total": 638,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                },
+                {
+                    "code": "",
+                    "name": "PONT22480211",
+                    "description": "",
+                    "qty": 1,
+                    "unit": "",
+                    "unit_price": 379,
+                    "total": 379,
+                    "metadata": {
+                        "color": "",
+                        "size": "",
+                        "remark": ""
+                    }
+                }
+            ],
+            "metadata": []
+        }
+    ]
+}
