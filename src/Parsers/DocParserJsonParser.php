@@ -4,373 +4,403 @@ declare(strict_types=1);
 namespace Parsers;
 
 /**
- * Parser for PaddleOCR doc_parser output format
+ * DocParserJsonParser - PaddleOCR doc_parser 格式解析器
  * 
- * Identifies by:
- * - JSON files with 'parsing_res_list' array
- * - Contains 'block_label', 'block_content', 'block_bbox' fields
- * - Usually paired with .md file of same name
+ * 增強版：
+ * - 使用智能字段映射
+ * - 支持更多表格格式
+ * - 更好的數據提取
  */
 class DocParserJsonParser extends AbstractParser {
-  
-  public function getId(): string {
-    return 'doc_parser_json';
-  }
-
-  public function getName(): string {
-    return 'PaddleOCR DocParser JSON';
-  }
-
-  public function getSupportedExtensions(): array {
-    return ['json', 'md'];
-  }
-
-  public function canParse(array $files): float {
-    $jsonFiles = $this->filterByExtensions($files, ['json']);
     
-    if (empty($jsonFiles)) {
-      return 0.0;
+    public function getId(): string {
+        return 'doc_parser_json';
     }
 
-    $score = 0.0;
-    $checked = 0;
+    public function getName(): string {
+        return 'PaddleOCR DocParser JSON';
+    }
 
-    foreach ($jsonFiles as $file) {
-      $json = $this->readJsonFile($file);
-      if (!$json) continue;
-      
-      $checked++;
-      
-      // Check for doc_parser specific structure
-      $root = $this->normalizeRoot($json);
-      
-      if (isset($root['parsing_res_list']) && is_array($root['parsing_res_list'])) {
-        $score += 0.5;
+    public function getSupportedExtensions(): array {
+        return ['json', 'md'];
+    }
+
+    /**
+     * 評估是否可以解析
+     */
+    public function canParse(array $files): float {
+        $jsonFiles = $this->filterByExtensions($files, ['json']);
         
-        // Check for typical block structure
-        $blocks = $root['parsing_res_list'];
-        if (!empty($blocks)) {
-          $firstBlock = $blocks[0];
-          if (isset($firstBlock['block_label']) && isset($firstBlock['block_content'])) {
-            $score += 0.3;
-          }
-          if (isset($firstBlock['block_bbox'])) {
-            $score += 0.2;
-          }
+        if (empty($jsonFiles)) {
+            return 0.0;
         }
-      }
-      
-      // Check for layout_det_res (another doc_parser indicator)
-      if (isset($root['layout_det_res'])) {
-        $score += 0.1;
-      }
-      
-      // Check for model_settings (doc_parser specific)
-      if (isset($root['model_settings'])) {
-        $score += 0.1;
-      }
+
+        $score = 0.0;
+        $checked = 0;
+
+        foreach ($jsonFiles as $file) {
+            $json = $this->readJsonFile($file);
+            if (!$json) continue;
+            
+            $checked++;
+            $root = $this->normalizeRoot($json);
+            
+            // 檢查 doc_parser 特徵結構
+            if (isset($root['parsing_res_list']) && is_array($root['parsing_res_list'])) {
+                $score += 0.5;
+                
+                $blocks = $root['parsing_res_list'];
+                if (!empty($blocks)) {
+                    $firstBlock = $blocks[0];
+                    
+                    // 檢查典型的區塊結構
+                    if (isset($firstBlock['block_label']) && isset($firstBlock['block_content'])) {
+                        $score += 0.3;
+                    }
+                    if (isset($firstBlock['block_bbox'])) {
+                        $score += 0.2;
+                    }
+                }
+            }
+            
+            // 其他 doc_parser 標誌
+            if (isset($root['layout_det_res'])) {
+                $score += 0.1;
+            }
+            if (isset($root['model_settings'])) {
+                $score += 0.1;
+            }
+        }
+
+        return $checked > 0 ? min(1.0, $score / $checked) : 0.0;
     }
 
-    return $checked > 0 ? min(1.0, $score / $checked) : 0.0;
-  }
+    /**
+     * 解析文件
+     */
+    public function parse(array $files): array {
+        $invoices = [];
+        $groups = $this->groupFilesByBaseName($files);
 
-  public function parse(array $files): array {
-    $jsonFiles = $this->filterByExtensions($files, ['json']);
-    $mdFiles = $this->filterByExtensions($files, ['md']);
-    
-    $groups = $this->groupFilesByBaseName($files);
-    $invoices = [];
+        foreach ($groups as $baseName => $group) {
+            $jsonFile = $group['json'] ?? null;
+            $mdFile = $group['md'] ?? null;
 
-    foreach ($jsonFiles as $file) {
-      $json = $this->readJsonFile($file);
-      if (!$json) continue;
+            if (!$jsonFile) continue;
 
-      $root = $this->normalizeRoot($json);
-      if (!isset($root['parsing_res_list'])) continue;
+            $invoice = $this->parseJsonFile($jsonFile, $mdFile);
+            if ($invoice && !empty($invoice['items'])) {
+                $invoices[] = $this->normalizeInvoice($invoice);
+            }
+        }
 
-      $blocks = $root['parsing_res_list'];
-      
-      $invoice = $this->extractInvoiceData($blocks, $file['name']);
-      $invoices[] = $this->normalizeInvoice($invoice);
+        // 如果沒有按組匹配到，嘗試單獨處理每個 JSON
+        if (empty($invoices)) {
+            foreach ($this->filterByExtensions($files, ['json']) as $file) {
+                $invoice = $this->parseJsonFile($file, null);
+                if ($invoice && !empty($invoice['items'])) {
+                    $invoices[] = $this->normalizeInvoice($invoice);
+                }
+            }
+        }
+
+        return $invoices;
     }
 
-    return $invoices;
-  }
+    /**
+     * 解析單個 JSON 文件
+     */
+    protected function parseJsonFile(array $jsonFile, ?array $mdFile): ?array {
+        $json = $this->readJsonFile($jsonFile);
+        if (!$json) return null;
 
-  private function normalizeRoot(array $json): array {
-    if (isset($json['parsing_res_list'])) return $json;
-    if (isset($json['res']['parsing_res_list'])) return $json['res'];
-    if (isset($json['result']['parsing_res_list'])) return $json['result'];
-    return $json;
-  }
+        $root = $this->normalizeRoot($json);
+        $blocks = $root['parsing_res_list'] ?? [];
+        
+        if (empty($blocks)) return null;
 
-  private function extractInvoiceData(array $blocks, string $sourceFile): array {
-    $supplier = $this->guessSupplier($blocks);
-    $invoiceDate = $this->extractDate($blocks);
-    $declaredTotal = $this->guessDeclaredTotal($blocks);
-    $invoiceNumber = $this->extractInvoiceNumber($blocks);
+        // 收集信息
+        $tables = $this->collectTables($blocks);
+        $textBlocks = $this->collectTextBlocks($blocks);
+        $allText = implode("\n", $textBlocks);
 
-    $tables = $this->collectTables($blocks);
-    $best = $this->pickBestTable($tables);
-    $items = $best ? $this->extractItemsFromTable($best) : [];
+        // 提取發票信息
+        $supplierName = $this->extractSupplierName($textBlocks, $allText);
+        $customerName = $this->extractCustomerName($allText);
+        $invoiceDate = $this->extractDate($allText);
+        $invoiceNumber = $this->extractInvoiceNumber($allText);
+        $declaredTotal = $this->extractTotal($textBlocks);
 
-    $calc = 0.0;
-    foreach ($items as $it) $calc += (float)$it['total'];
+        // 提取項目
+        $items = [];
+        if (!empty($tables)) {
+            $bestTable = $this->pickBestTable($tables);
+            if ($bestTable) {
+                $items = $this->extractItemsFromTableData($bestTable);
+            }
+        }
 
-    return [
-      'source_file' => $sourceFile,
-      'supplier_name' => $supplier,
-      'customer_name' => $this->extractCustomer($blocks),
-      'invoice_date' => $invoiceDate,
-      'invoice_number' => $invoiceNumber,
-      'declared_total' => $declaredTotal,
-      'calc_total' => round($calc, 2),
-      'items' => $items,
-      'metadata' => [
-        'block_count' => count($blocks),
-        'table_count' => count($tables),
-      ],
-    ];
-  }
+        // 計算總額
+        $calcTotal = array_sum(array_column($items, 'total'));
 
-  private function guessSupplier(array $blocks): string {
-    $cands = [];
-    foreach ($blocks as $b) {
-      $text = trim((string)($b['block_content'] ?? ''));
-      if ($text === '') continue;
-      $line = trim(explode("\n", $text)[0]);
-
-      // Skip common non-supplier patterns
-      if (preg_match('/invoice|receipt|tax|date|tel|phone|fax|address|bill to|ship to|發票|收據|税|稅|日期|電話|地址|客戶|客户|批次|营业员|經辦人|经办人/iu', $line)) continue;
-      if (mb_strlen($line) < 2) continue;
-
-      $digitCount = preg_match_all('/\d/', $line);
-      if ($digitCount >= 6) continue;
-
-      $score = 0;
-      if (preg_match('/sdn bhd|ltd|limited|inc|co\.|company|enterprise|trading/i', $line)) $score += 5;
-      if (preg_match('/有限公司|國際|国际|網絡|网络|贸易|貿易|商店|商行|皮具|销售/u', $line)) $score += 5;
-      $score += min(10, mb_strlen($line) / 3);
-
-      if (isset($b['block_bbox'][1])) $score += max(0, 10 - (float)$b['block_bbox'][1] / 80.0);
-
-      $cands[] = ['line'=>$line,'score'=>$score];
+        return [
+            'source_file' => $jsonFile['name'],
+            'supplier_name' => $supplierName,
+            'customer_name' => $customerName,
+            'invoice_date' => $invoiceDate,
+            'invoice_number' => $invoiceNumber,
+            'declared_total' => $declaredTotal,
+            'calc_total' => round($calcTotal, 2),
+            'items' => $items,
+        ];
     }
 
-    usort($cands, fn($a,$b)=> $b['score'] <=> $a['score']);
-    return $cands[0]['line'] ?? '';
-  }
-
-  private function extractCustomer(array $blocks): string {
-    foreach ($blocks as $b) {
-      $text = trim((string)($b['block_content'] ?? ''));
-      if (preg_match('/客[户戶][：:]\s*(.+)/u', $text, $m)) {
-        return trim($m[1]);
-      }
-      if (preg_match('/bill\s*to[:\s]+(.+)/i', $text, $m)) {
-        return trim($m[1]);
-      }
+    /**
+     * 標準化 JSON 根節點
+     */
+    protected function normalizeRoot(array $json): array {
+        if (isset($json['result']) && is_array($json['result'])) {
+            return $json['result'];
+        }
+        if (isset($json['data']) && is_array($json['data'])) {
+            return $json['data'];
+        }
+        return $json;
     }
-    return '';
-  }
 
-  private function extractDate(array $blocks): ?string {
-    foreach ($blocks as $b) {
-      $text = trim((string)($b['block_content'] ?? ''));
-      // Chinese format: 日期：2025-01-10
-      if (preg_match('/日期[：:]\s*(\d{4}-\d{2}-\d{2})/u', $text, $m)) {
-        return $m[1];
-      }
-      // English format: Date: 2025-01-10
-      if (preg_match('/date[:\s]+(\d{4}-\d{2}-\d{2})/i', $text, $m)) {
-        return $m[1];
-      }
-      // Other date formats
-      if (preg_match('/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/', $text, $m)) {
-        return "{$m[3]}-{$m[2]}-{$m[1]}";
-      }
+    /**
+     * 收集表格區塊
+     */
+    protected function collectTables(array $blocks): array {
+        $tables = [];
+        
+        foreach ($blocks as $block) {
+            $label = strtolower((string)($block['block_label'] ?? ''));
+            if (strpos($label, 'table') === false) continue;
+            
+            $html = (string)($block['block_content'] ?? '');
+            $tableData = $this->parseHtmlTable($html);
+            
+            if ($tableData && !empty($tableData['rows'])) {
+                $tables[] = $tableData;
+            }
+        }
+        
+        return $tables;
     }
-    return null;
-  }
 
-  private function extractInvoiceNumber(array $blocks): ?string {
-    foreach ($blocks as $b) {
-      $text = trim((string)($b['block_content'] ?? ''));
-      // Chinese: 批次：45009
-      if (preg_match('/批次[：:]\s*(\d+)/u', $text, $m)) {
-        return $m[1];
-      }
-      // English: Invoice No: INV-001
-      if (preg_match('/invoice\s*(no|number|#)?[:\s]+([A-Z0-9\-]+)/i', $text, $m)) {
-        return $m[2];
-      }
+    /**
+     * 解析 HTML 表格
+     */
+    protected function parseHtmlTable(string $html): ?array {
+        if (trim($html) === '') return null;
+        
+        $dom = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        $ok = $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html);
+        libxml_clear_errors();
+        
+        if (!$ok) return null;
+
+        $tableElements = $dom->getElementsByTagName('table');
+        if ($tableElements->length === 0) return null;
+
+        $rows = [];
+        $trs = $tableElements->item(0)->getElementsByTagName('tr');
+        
+        foreach ($trs as $tr) {
+            $cells = [];
+            foreach ($tr->childNodes as $td) {
+                if (!($td instanceof \DOMElement)) continue;
+                if (!in_array(strtolower($td->tagName), ['td', 'th'], true)) continue;
+                $cells[] = trim(preg_replace('/\s+/u', ' ', $td->textContent ?? ''));
+            }
+            if (!empty($cells)) {
+                $rows[] = $cells;
+            }
+        }
+
+        return [
+            'rows' => $rows,
+            'maxCols' => !empty($rows) ? max(array_map('count', $rows)) : 0,
+            'rowCount' => count($rows),
+        ];
     }
-    return null;
-  }
 
-  private function guessDeclaredTotal(array $blocks): ?float {
-    $all = [];
-    foreach ($blocks as $b) {
-      $t = trim((string)($b['block_content'] ?? ''));
-      if ($t) $all[] = $t;
+    /**
+     * 收集文字區塊
+     */
+    protected function collectTextBlocks(array $blocks): array {
+        $texts = [];
+        
+        foreach ($blocks as $block) {
+            $label = strtolower((string)($block['block_label'] ?? ''));
+            if (strpos($label, 'table') !== false) continue;
+            
+            $content = $block['block_content'] ?? '';
+            $text = is_string($content) ? strip_tags($content) : '';
+            $text = trim(preg_replace('/\s+/', ' ', $text));
+            
+            if (!empty($text)) {
+                $texts[] = $text;
+            }
+        }
+        
+        return $texts;
     }
-    $joined = implode("\n", $all);
 
-    $re = '/(grand\s*total|total\s*due|amount\s*due|total|本单额|合計|合计|總數|总数)\s*[:：]?\s*([A-Z]{0,3}\s*)?([0-9][0-9,]*\.?[0-9]{0,2})/iu';
-    if (preg_match_all($re, $joined, $m) && !empty($m[3])) {
-      $last = end($m[3]);
-      $v = $this->parseMoney($last);
-      return $v > 0 ? $v : null;
+    /**
+     * 提取供應商名稱
+     */
+    protected function extractSupplierName(array $textBlocks, string $allText): string {
+        // 先嘗試從特定標籤提取
+        $patterns = [
+            '/供[应應]商[：:]\s*([^\n]+)/u',
+            '/from[:\s]+([^\n]+)/i',
+            '/vendor[:\s]+([^\n]+)/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $allText, $m)) {
+                return trim($m[1]);
+            }
+        }
+
+        // 嘗試從開頭的文字區塊提取（通常第一行是公司名）
+        foreach ($textBlocks as $text) {
+            // 跳過日期
+            if (preg_match('/^\d{4}[-\/]/', $text)) continue;
+            
+            // 檢查是否像公司名
+            if (preg_match('/(有限公司|co\.?\s*ltd|trading|enterprise)/iu', $text)) {
+                return trim($text);
+            }
+            
+            // 如果是較短的非數字文字，可能是公司名
+            if (mb_strlen($text) > 3 && mb_strlen($text) < 100 && !preg_match('/^\d/', $text)) {
+                return trim($text);
+            }
+        }
+
+        return '';
     }
-    return null;
-  }
 
-  private function parseMoney(string $s): float {
-    $t = preg_replace('/[^\d\.,-]/', '', $s);
-    $t = str_replace(',', '', $t);
-    return is_numeric($t) ? (float)$t : 0.0;
-  }
+    /**
+     * 提取客戶名稱
+     */
+    protected function extractCustomerName(string $text): string {
+        $patterns = [
+            '/客[户戶][：:]\s*([^\n]+)/u',
+            '/to[:\s]+([^\n]+)/i',
+            '/bill\s*to[:\s]+([^\n]+)/i',
+        ];
 
-  private function collectTables(array $blocks): array {
-    $out = [];
-    foreach ($blocks as $b) {
-      $label = strtolower((string)($b['block_label'] ?? ''));
-      if (strpos($label, 'table') === false) continue;
-      $html = (string)($b['block_content'] ?? '');
-      $t = $this->parseHtmlTable($html);
-      if ($t) $out[] = $t;
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $m)) {
+                return trim($m[1]);
+            }
+        }
+
+        return '';
     }
-    return $out;
-  }
 
-  private function parseHtmlTable(string $html): ?array {
-    if (trim($html) === '') return null;
-    $dom = new \DOMDocument();
-    libxml_use_internal_errors(true);
-    $ok = $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html);
-    libxml_clear_errors();
-    if (!$ok) return null;
+    /**
+     * 提取日期
+     */
+    protected function extractDate(string $text): ?string {
+        $patterns = [
+            '/日期[：:]\s*(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/u',
+            '/date[:\s]+(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/i',
+            '/(\d{4})年(\d{1,2})月(\d{1,2})日/u',
+            '/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/',
+        ];
 
-    $tables = $dom->getElementsByTagName('table');
-    if ($tables->length === 0) return null;
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $m)) {
+                if (isset($m[3])) {
+                    // 中文日期
+                    return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
+                }
+                return $this->normalizeDate($m[1]);
+            }
+        }
 
-    $rows = [];
-    $trs = $tables->item(0)->getElementsByTagName('tr');
-    foreach ($trs as $tr) {
-      $cells = [];
-      foreach ($tr->childNodes as $td) {
-        if (!($td instanceof \DOMElement)) continue;
-        if (!in_array(strtolower($td->tagName), ['td','th'], true)) continue;
-        $cells[] = trim(preg_replace('/\s+/u', ' ', $td->textContent ?? ''));
-      }
-      if ($cells) $rows[] = $cells;
+        return null;
     }
-    return count($rows) ? ['rows'=>$rows] : null;
-  }
 
-  private function pickBestTable(array $tables): ?array {
-    if (!$tables) return null;
-    $best = null; $bestScore = -1;
-    
-    $keywords = [
-      'description','item','product','code','qty','quantity','unit price','amount','total','subtotal',
-      '說明','项目','項目','產品','货品','編號','编号','數量','数量','單價','单价','總數','总数','金額','金额','合計','合计',
-      '款号','名称','颜色','尺码','备注'
-    ];
-    
-    foreach ($tables as $t) {
-      $hdr = strtolower(implode(' ', $t['rows'][0] ?? []));
-      $score = 0;
-      foreach ($keywords as $k) if (strpos($hdr, strtolower($k)) !== false) $score += 2;
-      $score += min(10, count($t['rows']));
-      if ($score > $bestScore) { $bestScore = $score; $best = $t; }
+    /**
+     * 提取發票號碼
+     */
+    protected function extractInvoiceNumber(string $text): ?string {
+        $patterns = [
+            '/發票[号號][：:]\s*([A-Za-z0-9\-]+)/u',
+            '/invoice\s*#?\s*[:\s]*([A-Za-z0-9\-]+)/i',
+            '/批次[：:]\s*(\d+)/u',
+            '/order\s*#?\s*[:\s]*([A-Za-z0-9\-]+)/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $m)) {
+                return trim($m[1]);
+            }
+        }
+
+        return null;
     }
-    return $best;
-  }
 
-  private function extractItemsFromTable(array $table): array {
-    $rows = $table['rows'] ?? [];
-    if (count($rows) < 2) return [];
+    /**
+     * 提取總額
+     */
+    protected function extractTotal(array $textBlocks): ?float {
+        $allText = implode("\n", $textBlocks);
+        
+        $patterns = [
+            '/本單額[：:]\s*([\d,]+\.?\d*)/u',
+            '/grand\s*total[:\s]*[\$¥￥]?\s*([\d,]+\.?\d*)/i',
+            '/total[:\s]*[\$¥￥]?\s*([\d,]+\.?\d*)/i',
+            '/合[计計][：:]\s*[\$¥￥]?\s*([\d,]+\.?\d*)/u',
+        ];
 
-    $header = array_map(fn($x)=> strtolower((string)$x), $rows[0]);
-    $map = $this->mapColumns($header);
+        // 找最後出現的總額
+        $lastValue = null;
+        $lastPos = -1;
 
-    $items = [];
-    for ($i=1; $i<count($rows); $i++) {
-      $r = $rows[$i];
+        foreach ($patterns as $pattern) {
+            if (preg_match_all($pattern, $allText, $matches, PREG_OFFSET_CAPTURE)) {
+                foreach ($matches[1] as $match) {
+                    if ($match[1] > $lastPos) {
+                        $lastPos = $match[1];
+                        $lastValue = $match[0];
+                    }
+                }
+            }
+        }
 
-      $seqNo = $this->cell($r, $map['seq']);
-      $code = $this->cell($r, $map['code']);
-      $name = $this->cell($r, $map['name']);
-      $color = $this->cell($r, $map['color']);
-      $qtyS = $this->cell($r, $map['qty']);
-      $unitS= $this->cell($r, $map['unit_price']);
-      $totS = $this->cell($r, $map['total']);
+        if ($lastValue !== null) {
+            $value = str_replace(',', '', $lastValue);
+            return is_numeric($value) ? (float)$value : null;
+        }
 
-      // Skip summary rows
-      if (preg_match('/^(合计|total|grand|subtotal)$/iu', trim($seqNo)) || 
-          preg_match('/^(合计|total|grand|subtotal)$/iu', trim($code))) {
-        continue;
-      }
-
-      if ($name === '' && $code === '') continue;
-
-      $unit = $this->parseMoney($unitS);
-      $total = $this->parseMoney($totS);
-
-      $qty = (float)preg_replace('/[^\d\.-]/','', $qtyS);
-      if ($qty <= 0 && $unit > 0 && $total > 0) {
-        $q = $total / $unit;
-        $near = round($q);
-        $qty = (abs($q - $near) < 0.02) ? $near : $q;
-      }
-      if ($qty <= 0) $qty = 1;
-
-      $fullName = $name;
-      if ($color !== '') {
-        $fullName = $name . ' - ' . $color;
-      }
-
-      $items[] = [
-        'code' => $code,
-        'name' => $fullName,
-        'qty' => round($qty, 4),
-        'unit_price' => round($unit > 0 ? $unit : ($total > 0 ? $total/$qty : 0), 4),
-        'total' => round($total > 0 ? $total : $qty * ($unit > 0 ? $unit : 0), 2),
-        'metadata' => ['color' => $color],
-      ];
+        return null;
     }
-    return $items;
-  }
 
-  private function mapColumns(array $h): array {
-    $find = function(array $cands) use ($h) {
-      foreach ($h as $i=>$col) {
-        foreach ($cands as $c) if (strpos($col, $c) !== false) return $i;
-      }
-      return -1;
-    };
+    /**
+     * 選擇最佳表格
+     */
+    protected function pickBestTable(array $tables): ?array {
+        if (empty($tables)) return null;
 
-    $seq  = $find(['序号', '序號', 'no', 'seq', '#']);
-    $code = $find(['款号', '款號', 'code', 'item code', 'sku', '編號', '编号']);
-    $name = $find(['名称', '名稱', 'description', 'item', 'product', 'name', '說明', '说明', '項目', '项目', '產品', '产品']);
-    $color= $find(['颜色', '顏色', 'color', 'colour']);
-    $qty  = $find(['数量', '數量', 'qty', 'quantity']);
-    $unit = $find(['单价', '單價', 'unit price', 'price', 'unit cost']);
-    $tot  = $find(['金额', '金額', 'amount', 'total', '總數', '总数', '小計', '小计', 'subtotal']);
+        $best = null;
+        $bestScore = -1;
 
-    if ($seq === -1) $seq = 0;
-    if ($name === -1) $name = 2;
-    if ($tot === -1) $tot = count($h) - 2;
+        foreach ($tables as $table) {
+            $score = $this->scoreTableAsInvoiceItems($table);
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $table;
+            }
+        }
 
-    return [
-      'seq' => $seq, 'code' => $code, 'name' => $name,
-      'color' => $color, 'qty' => $qty, 'unit_price' => $unit, 'total' => $tot
-    ];
-  }
-
-  private function cell(array $r, int $idx): string {
-    if ($idx < 0 || $idx >= count($r)) return '';
-    return trim((string)$r[$idx]);
-  }
+        return $best;
+    }
 }

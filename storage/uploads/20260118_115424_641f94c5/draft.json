@@ -1,0 +1,105 @@
+{
+    "run_id": "20260118_115424_641f94c5",
+    "type": "purchase",
+    "created_at": "2026-01-18 11:54:24",
+    "source": {
+        "upload_type": "folder",
+        "file_count": 1,
+        "file_summary": {
+            "total_files": 1,
+            "by_extension": {
+                "json": 1
+            },
+            "total_size": 8852,
+            "total_size_human": "8.6 KB"
+        }
+    },
+    "parser": {
+        "id": "doc_parser_json",
+        "name": "PaddleOCR DocParser JSON",
+        "confidence": 1
+    },
+    "invoices": [
+        {
+            "source_file": "供應商發票1_p1.json",
+            "supplier_name": "(wholly owned by Jin Hai Fashion Trading Co. Ltd.)",
+            "customer_name": "",
+            "invoice_date": "2026-01-18",
+            "invoice_number": "",
+            "declared_total": null,
+            "calc_total": 4157,
+            "items": [
+                {
+                    "code": "",
+                    "name": "PONT22450832",
+                    "qty": 1,
+                    "unit_price": 259,
+                    "total": 259
+                },
+                {
+                    "code": "",
+                    "name": "LUEUKA360923",
+                    "qty": 2,
+                    "unit_price": 149,
+                    "total": 298
+                },
+                {
+                    "code": "",
+                    "name": "BON21188",
+                    "qty": 1,
+                    "unit_price": 399,
+                    "total": 399
+                },
+                {
+                    "code": "",
+                    "name": "KRIFW2437822",
+                    "qty": 1,
+                    "unit_price": 259,
+                    "total": 259
+                },
+                {
+                    "code": "",
+                    "name": "KRIFW2434018",
+                    "qty": 2,
+                    "unit_price": 229,
+                    "total": 458
+                },
+                {
+                    "code": "",
+                    "name": "PONT22480512",
+                    "qty": 1,
+                    "unit_price": 279,
+                    "total": 279
+                },
+                {
+                    "code": "",
+                    "name": "VMVFSH-4673D",
+                    "qty": 1,
+                    "unit_price": 579,
+                    "total": 579
+                },
+                {
+                    "code": "",
+                    "name": "VMVFPT-4690D",
+                    "qty": 1,
+                    "unit_price": 609,
+                    "total": 609
+                },
+                {
+                    "code": "",
+                    "name": "INA104137",
+                    "qty": 2,
+                    "unit_price": 319,
+                    "total": 638
+                },
+                {
+                    "code": "",
+                    "name": "PONT22480211",
+                    "qty": 1,
+                    "unit_price": 379,
+                    "total": 379
+                }
+            ]
+        }
+    ]
+}
