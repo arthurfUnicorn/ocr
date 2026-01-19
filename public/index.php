@@ -1,18 +1,46 @@
 <?php
 // public/index.php
+// 修正版 - 與 Invoice Parser v2 兼容
 declare(strict_types=1);
 
+// ============================================
+// 核心工具類
+// ============================================
 require_once __DIR__ . '/../src/Util.php';
 require_once __DIR__ . '/../src/Db.php';
 require_once __DIR__ . '/../src/FileScanner.php';
-require_once __DIR__ . '/../src/ParserRegistry.php';
-require_once __DIR__ . '/../src/Parsers/ParserInterface.php';
-require_once __DIR__ . '/../src/Parsers/AbstractParser.php';
-require_once __DIR__ . '/../src/Parsers/DocParserJsonParser.php';
-require_once __DIR__ . '/../src/Parsers/GenericMarkdownParser.php';
 require_once __DIR__ . '/../src/RunStore.php';
 require_once __DIR__ . '/../src/PurchaseImporter.php';
 require_once __DIR__ . '/../src/SaleImporter.php';
+
+// ============================================
+// 解析器系統 - 按正確順序加載
+// ============================================
+
+// 1. 先加載 Traits（必須在 AbstractParser 之前）
+require_once __DIR__ . '/../src/Parsers/Traits/SmartFieldMapping.php';
+require_once __DIR__ . '/../src/Parsers/Traits/TableExtraction.php';
+require_once __DIR__ . '/../src/Parsers/Traits/TextBlockParsing.php';
+
+// 2. 加載接口和基類
+require_once __DIR__ . '/../src/Parsers/ParserInterface.php';
+require_once __DIR__ . '/../src/Parsers/AbstractParser.php';
+
+// 3. 加載所有解析器
+require_once __DIR__ . '/../src/Parsers/DocParserJsonParser.php';
+require_once __DIR__ . '/../src/Parsers/GenericMarkdownParser.php';
+require_once __DIR__ . '/../src/Parsers/TextBlockParser.php';
+require_once __DIR__ . '/../src/Parsers/LlmAssistedParser.php';
+
+// 4. 加載驗證器
+require_once __DIR__ . '/../src/Validators/InvoiceDataValidator.php';
+
+// 5. 最後加載註冊表
+require_once __DIR__ . '/../src/ParserRegistry.php';
+
+// ============================================
+// 以下是原始 index.php 的其餘代碼
+// ============================================
 
 session_start();
 
@@ -260,61 +288,46 @@ $parsers = $registry->getAllParsers();
     .check-icon {
       display: none;
       position: absolute; top: 12px; right: 12px;
-      width: 24px; height: 24px;
-      background: #2563eb; border-radius: 50%;
-      color: white; font-size: 14px; line-height: 24px; text-align: center;
+      color: #2563eb; font-size: 18px;
     }
     .type-option.selected .check-icon { display: block; }
-
-    .upload-tabs { display: flex; gap: 0; margin-bottom: 16px; }
+    
+    .upload-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
     .tab-btn {
-      flex: 1;
-      padding: 12px;
+      padding: 8px 16px;
       border: 1px solid #d0d0d0;
-      background: #f9f9f9;
+      background: white;
+      border-radius: 6px;
       cursor: pointer;
-      font-weight: 500;
-      color: #666;
+      font-size: 13px;
       transition: all 0.2s;
     }
-    .tab-btn:first-child { border-radius: 8px 0 0 8px; }
-    .tab-btn:last-child { border-radius: 0 8px 8px 0; }
+    .tab-btn:hover { background: #f5f5f5; }
     .tab-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
     
     .upload-zone {
       border: 2px dashed #d0d0d0;
       border-radius: 8px;
-      padding: 40px 20px;
+      padding: 40px;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s;
       background: #fafafa;
     }
-    .upload-zone:hover, .upload-zone.dragover { border-color: #2563eb; background: #f8faff; }
-    .upload-zone.has-files { border-color: #22c55e; background: #f0fdf4; }
-    .upload-icon { font-size: 48px; margin-bottom: 16px; color: #9ca3af; }
-    .upload-text { color: #6b7280; font-size: 14px; }
-    .upload-hint { color: #9ca3af; font-size: 12px; margin-top: 8px; }
+    .upload-zone:hover { border-color: #2563eb; background: #f8faff; }
+    .upload-zone.dragover { border-color: #2563eb; background: #eff6ff; }
+    .upload-icon { font-size: 48px; margin-bottom: 16px; }
+    .upload-text { font-size: 16px; color: #333; margin-bottom: 8px; }
+    .upload-hint { font-size: 13px; color: #888; }
     
-    .file-list {
-      margin-top: 16px;
-      max-height: 200px;
-      overflow-y: auto;
-      text-align: left;
+    .file-list { margin-top: 16px; max-height: 200px; overflow-y: auto; }
+    .file-item { 
+      display: flex; align-items: center; gap: 12px; 
+      padding: 10px 12px; background: #f5f5f5; border-radius: 6px;
+      margin-bottom: 8px;
     }
-    .file-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      font-size: 13px;
-    }
-    .file-item .icon { color: #6b7280; }
-    .file-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-item .icon { font-size: 20px; }
+    .file-item .name { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .file-item .size { color: #9ca3af; font-size: 12px; }
     .file-item .remove { color: #ef4444; cursor: pointer; padding: 4px; }
     
@@ -439,7 +452,8 @@ $parsers = $registry->getAllParsers();
         <ul>
           <li><strong>PaddleOCR doc_parser</strong> - JSON with parsing_res_list</li>
           <li><strong>Markdown invoices</strong> - MD files with tables</li>
-          <li>More formats coming soon...</li>
+          <li><strong>Text-based invoices</strong> - Files without table structure</li>
+          <li><strong>LLM-assisted</strong> - Complex formats (requires API)</li>
         </ul>
       </div>
     </form>
@@ -474,12 +488,20 @@ $parsers = $registry->getAllParsers();
         : 'Click or drag files here';
     }
     
-    // Type selector
+    function clearFiles() {
+      selectedFiles = [];
+      fileList.innerHTML = '';
+      fileList.classList.add('hidden');
+      submitBtn.disabled = true;
+      folderInput.value = '';
+      filesInput.value = '';
+    }
+    
+    // Type selection
     document.querySelectorAll('.type-option').forEach(opt => {
-      opt.addEventListener('click', function() {
+      opt.addEventListener('click', () => {
         document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
-        this.classList.add('selected');
-        this.querySelector('input[type="radio"]').checked = true;
+        opt.classList.add('selected');
       });
     });
     
@@ -493,186 +515,135 @@ $parsers = $registry->getAllParsers();
     });
     
     // Drag and drop
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
-      uploadZone.addEventListener(e, (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-      });
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
     });
     
-    uploadZone.addEventListener('dragover', () => uploadZone.classList.add('dragover'));
-    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('dragover');
+    });
     
     uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
       uploadZone.classList.remove('dragover');
-      const items = e.dataTransfer.items;
       
-      // Handle folder drop (if supported)
-      if (items && items.length > 0 && items[0].webkitGetAsEntry) {
-        const entries = [];
-        for (let item of items) {
-          const entry = item.webkitGetAsEntry();
-          if (entry) entries.push(entry);
-        }
-        processEntries(entries);
-      } else {
-        // Fallback to files
-        handleFiles(e.dataTransfer.files);
+      const items = e.dataTransfer.items;
+      if (items) {
+        handleDataTransferItems(items);
       }
     });
     
-    // Process directory entries (for drag & drop)
-    async function processEntries(entries) {
+    async function handleDataTransferItems(items) {
       const files = [];
       
-      async function readEntry(entry, path = '') {
-        if (entry.isFile) {
-          return new Promise((resolve) => {
-            entry.file(file => {
-              // Add webkitRelativePath-like property
-              Object.defineProperty(file, 'webkitRelativePath', {
-                value: path + file.name,
-                writable: false
-              });
-              files.push(file);
-              resolve();
-            });
-          });
-        } else if (entry.isDirectory) {
-          const reader = entry.createReader();
-          return new Promise((resolve) => {
-            reader.readEntries(async (entries) => {
-              for (const e of entries) {
-                await readEntry(e, path + entry.name + '/');
+      for (const item of items) {
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry();
+          if (entry) {
+            if (entry.isDirectory) {
+              await traverseDirectory(entry, files);
+            } else {
+              const file = item.getAsFile();
+              if (isValidFile(file.name)) {
+                files.push(file);
               }
-              resolve();
-            });
-          });
+            }
+          }
         }
       }
       
-      for (const entry of entries) {
-        await readEntry(entry);
+      if (files.length > 0) {
+        handleFiles(files);
       }
-      
-      handleFiles(files);
+    }
+    
+    async function traverseDirectory(entry, files) {
+      const reader = entry.createReader();
+      return new Promise((resolve) => {
+        reader.readEntries(async (entries) => {
+          for (const e of entries) {
+            if (e.isFile) {
+              const file = await getFileFromEntry(e);
+              if (isValidFile(file.name)) {
+                files.push(file);
+              }
+            } else if (e.isDirectory) {
+              await traverseDirectory(e, files);
+            }
+          }
+          resolve();
+        });
+      });
+    }
+    
+    function getFileFromEntry(entry) {
+      return new Promise((resolve) => {
+        entry.file(resolve);
+      });
+    }
+    
+    function isValidFile(name) {
+      return /\.(json|md)$/i.test(name);
     }
     
     // File input change
-    folderInput.addEventListener('change', (e) => handleFiles(e.target.files));
-    filesInput.addEventListener('change', (e) => handleFiles(e.target.files));
+    folderInput.addEventListener('change', () => {
+      const files = Array.from(folderInput.files).filter(f => isValidFile(f.name));
+      handleFiles(files);
+    });
+    
+    filesInput.addEventListener('change', () => {
+      const files = Array.from(filesInput.files);
+      handleFiles(files);
+    });
     
     function handleFiles(files) {
-      selectedFiles = [];
-      const validExts = ['json', 'md'];
-      
-      for (const file of files) {
-        const ext = file.name.split('.').pop().toLowerCase();
-        if (validExts.includes(ext)) {
-          selectedFiles.push(file);
-        }
-      }
-      
-      updateFileList();
+      selectedFiles = files;
+      renderFileList();
+      submitBtn.disabled = files.length === 0;
     }
     
-    function updateFileList() {
+    function renderFileList() {
       if (selectedFiles.length === 0) {
         fileList.classList.add('hidden');
-        uploadZone.classList.remove('has-files');
-        submitBtn.disabled = true;
         return;
       }
       
-      uploadZone.classList.add('has-files');
       fileList.classList.remove('hidden');
-      submitBtn.disabled = false;
-      
-      // Group by extension
-      const byExt = {};
-      selectedFiles.forEach(f => {
-        const ext = f.name.split('.').pop().toLowerCase();
-        if (!byExt[ext]) byExt[ext] = 0;
-        byExt[ext]++;
-      });
-      
-      const summary = Object.entries(byExt).map(([e, c]) => `${c} ${e.toUpperCase()}`).join(', ');
-      uploadPrompt.textContent = `${selectedFiles.length} files selected (${summary})`;
-      
-      // Show file list (max 50)
-      const displayFiles = selectedFiles.slice(0, 50);
-      fileList.innerHTML = displayFiles.map((file, i) => `
+      fileList.innerHTML = selectedFiles.map((file, idx) => `
         <div class="file-item">
           <span class="icon">${file.name.endsWith('.json') ? '📄' : '📝'}</span>
-          <span class="name" title="${file.webkitRelativePath || file.name}">${file.name}</span>
+          <span class="name" title="${file.name}">${file.name}</span>
           <span class="size">${formatSize(file.size)}</span>
-          <span class="remove" onclick="removeFile(${i})">✕</span>
+          <span class="remove" onclick="removeFile(${idx})">✕</span>
         </div>
       `).join('');
-      
-      if (selectedFiles.length > 50) {
-        fileList.innerHTML += `<div style="text-align:center;color:#6b7280;font-size:12px;padding:8px;">...and ${selectedFiles.length - 50} more files</div>`;
-      }
-      
-      // Update the file input with selected files
-      updateFormFiles();
     }
     
     function removeFile(idx) {
       selectedFiles.splice(idx, 1);
-      updateFileList();
-    }
-    
-    function clearFiles() {
-      selectedFiles = [];
-      folderInput.value = '';
-      filesInput.value = '';
-      updateFileList();
-    }
-    
-    function updateFormFiles() {
-      const dt = new DataTransfer();
-      selectedFiles.forEach(file => dt.items.add(file));
+      renderFileList();
+      submitBtn.disabled = selectedFiles.length === 0;
       
+      // Update file input
+      const dt = new DataTransfer();
+      selectedFiles.forEach(f => dt.items.add(f));
       if (currentTab === 'folder') {
-        // 清空另一個 input，避免衝突
-        filesInput.files = new DataTransfer().files;
+        // Cannot update webkitdirectory input, user must re-select
+        if (selectedFiles.length === 0) {
+          folderInput.value = '';
+        }
       } else {
         filesInput.files = dt.files;
-        // 清空 folder input，避免衝突
-        folderInput.files = new DataTransfer().files;
       }
     }
     
     function formatSize(bytes) {
       if (bytes < 1024) return bytes + ' B';
-      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-      return (bytes / 1048576).toFixed(1) + ' MB';
+      if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+      return (bytes/1024/1024).toFixed(1) + ' MB';
     }
-    
-    // Form submission
-    document.getElementById('uploadForm').addEventListener('submit', function(e) {
-      if (selectedFiles.length === 0) {
-        e.preventDefault();
-        alert('Please select files to upload');
-        return;
-      }
-      
-      // 確保正確的 input 有文件
-      const dt = new DataTransfer();
-      selectedFiles.forEach(file => dt.items.add(file));
-      
-      if (currentTab === 'folder') {
-        // 如果是 folder 模式，文件已經在 folderInput
-        filesInput.disabled = true;  // 禁用另一個 input
-      } else {
-        filesInput.files = dt.files;
-        folderInput.disabled = true;  // 禁用另一個 input
-      }
-      
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Uploading...';
-    });
   </script>
 </body>
 </html>
