@@ -111,7 +111,7 @@ trait TextBlockParsing {
                     // 中文日期格式
                     return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
                 }
-                return $this->normalizeDate($m[1]);
+                return $this->normalizeDateString($m[1]);
             }
         }
 
@@ -119,9 +119,10 @@ trait TextBlockParsing {
     }
 
     /**
-     * 標準化日期格式為 YYYY-MM-DD
+     * 標準化日期字符串格式為 YYYY-MM-DD
+     * 注意：此方法名避免與 AbstractParser::normalizeDate 衝突
      */
-    protected function normalizeDate(string $dateStr): ?string {
+    protected function normalizeDateString(string $dateStr): ?string {
         $dateStr = str_replace('/', '-', $dateStr);
         $parts = explode('-', $dateStr);
         

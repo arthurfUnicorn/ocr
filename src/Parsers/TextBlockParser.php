@@ -18,8 +18,8 @@ require_once __DIR__ . '/Traits/TextBlockParsing.php';
  */
 class TextBlockParser extends AbstractParser {
     
-    use Traits\SmartFieldMapping;
-    use Traits\TableExtraction;
+    // 注意：SmartFieldMapping 和 TableExtraction 已經在 AbstractParser 中使用
+    // 只需要添加 TextBlockParsing
     use Traits\TextBlockParsing;
 
     public function getId(): string {
