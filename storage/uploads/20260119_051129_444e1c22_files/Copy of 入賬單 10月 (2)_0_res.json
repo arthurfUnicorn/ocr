@@ -1,0 +1,631 @@
+{
+    "input_path": "C:\\Users\\fooar\\Downloads\\Copy of 入賬單 10月 (2).pdf",
+    "page_index": 0,
+    "page_count": 2,
+    "width": 1191,
+    "height": 1685,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_layout_detection": true,
+        "use_chart_recognition": false,
+        "format_block_content": false,
+        "merge_layout_blocks": true,
+        "markdown_ignore_labels": [
+            "number",
+            "footnote",
+            "header",
+            "header_image",
+            "footer",
+            "footer_image",
+            "aside_text"
+        ]
+    },
+    "parsing_res_list": [
+        {
+            "block_label": "doc_title",
+            "block_content": "AT CASTING HOUSE LTD",
+            "block_bbox": [
+                467,
+                142,
+                938,
+                187
+            ],
+            "block_id": 0,
+            "block_order": 1,
+            "group_id": 0
+        },
+        {
+            "block_label": "image",
+            "block_content": "",
+            "block_bbox": [
+                388,
+                129,
+                455,
+                201
+            ],
+            "block_id": 1,
+            "block_order": null,
+            "group_id": 1
+        },
+        {
+            "block_label": "paragraph_title",
+            "block_content": "Invoice",
+            "block_bbox": [
+                118,
+                212,
+                197,
+                238
+            ],
+            "block_id": 2,
+            "block_order": 2,
+            "group_id": 2
+        },
+        {
+            "block_label": "text",
+            "block_content": "Job No. 2025050",
+            "block_bbox": [
+                874,
+                211,
+                1020,
+                236
+            ],
+            "block_id": 3,
+            "block_order": 3,
+            "group_id": 3
+        },
+        {
+            "block_label": "text",
+            "block_content": "Client Name : Redline",
+            "block_bbox": [
+                117,
+                269,
+                371,
+                294
+            ],
+            "block_id": 4,
+            "block_order": 4,
+            "group_id": 4
+        },
+        {
+            "block_label": "text",
+            "block_content": "Address : 牛頭角偉業街111號3樓",
+            "block_bbox": [
+                117,
+                297,
+                489,
+                323
+            ],
+            "block_id": 5,
+            "block_order": 5,
+            "group_id": 5
+        },
+        {
+            "block_label": "text",
+            "block_content": "Contact Person : Shelly",
+            "block_bbox": [
+                118,
+                328,
+                356,
+                352
+            ],
+            "block_id": 6,
+            "block_order": 6,
+            "group_id": 6
+        },
+        {
+            "block_label": "text",
+            "block_content": "Contact Phone : 9231 5678",
+            "block_bbox": [
+                118,
+                356,
+                394,
+                380
+            ],
+            "block_id": 7,
+            "block_order": 7,
+            "group_id": 7
+        },
+        {
+            "block_label": "text",
+            "block_content": "Job Title : Swisse",
+            "block_bbox": [
+                117,
+                385,
+                367,
+                410
+            ],
+            "block_id": 8,
+            "block_order": 8,
+            "group_id": 8
+        },
+        {
+            "block_label": "text",
+            "block_content": "Job Type : Usage 3 months only in hk for all digital channel (exclude tvc)",
+            "block_bbox": [
+                117,
+                413,
+                756,
+                440
+            ],
+            "block_id": 9,
+            "block_order": 9,
+            "group_id": 9
+        },
+        {
+            "block_label": "table",
+            "block_content": "<table><tr><td>Job Date</td><td></td><td>Amount</td></tr><tr><td>29-Sep-25</td><td>Sam. 4.5hrs</td><td>HK$ 4,500.00</td></tr><tr><td>29-Sep-25</td><td>Ching 6.5hrs + loading</td><td>HK$ 11,500.00</td></tr><tr><td>29-Sep-25</td><td>Paris 6hrs</td><td>HK$ 6,000.00</td></tr><tr><td></td><td>Casting fee</td><td>HK$ 10,000.00</td></tr></table>",
+            "block_bbox": [
+                114,
+                465,
+                1025,
+                941
+            ],
+            "block_id": 10,
+            "block_order": null,
+            "group_id": 10
+        },
+        {
+            "block_label": "text",
+            "block_content": "Payment Terms : Payment due after completion of job",
+            "block_bbox": [
+                148,
+                1030,
+                583,
+                1056
+            ],
+            "block_id": 11,
+            "block_order": 10,
+            "group_id": 11
+        },
+        {
+            "block_label": "text",
+            "block_content": "Cheque should be crossed and payable to AT Casting House Ltd. or deposit to bank.",
+            "block_bbox": [
+                250,
+                1059,
+                831,
+                1085
+            ],
+            "block_id": 12,
+            "block_order": 11,
+            "group_id": 12
+        },
+        {
+            "block_label": "text",
+            "block_content": "Bank Information : Bank Name: HSBC Swift Code: HSBCHKHHHKH",
+            "block_bbox": [
+                139,
+                1116,
+                719,
+                1143
+            ],
+            "block_id": 13,
+            "block_order": 12,
+            "group_id": 13
+        },
+        {
+            "block_label": "text",
+            "block_content": "Account Name : AT Casting House Ltd. Account Number: 640 177309 838",
+            "block_bbox": [
+                151,
+                1145,
+                796,
+                1172
+            ],
+            "block_id": 14,
+            "block_order": 13,
+            "group_id": 14
+        },
+        {
+            "block_label": "text",
+            "block_content": "Prepared by:",
+            "block_bbox": [
+                121,
+                1204,
+                223,
+                1229
+            ],
+            "block_id": 15,
+            "block_order": 14,
+            "group_id": 15
+        },
+        {
+            "block_label": "image",
+            "block_content": "",
+            "block_bbox": [
+                123,
+                1270,
+                349,
+                1348
+            ],
+            "block_id": 16,
+            "block_order": null,
+            "group_id": 16
+        },
+        {
+            "block_label": "text",
+            "block_content": "Name : Ron Lee",
+            "block_bbox": [
+                121,
+                1349,
+                243,
+                1372
+            ],
+            "block_id": 17,
+            "block_order": 15,
+            "group_id": 17
+        },
+        {
+            "block_label": "text",
+            "block_content": "RECEIVED\nDATE: K11012025",
+            "block_bbox": [
+                824,
+                1272,
+                1095,
+                1358
+            ],
+            "block_id": 18,
+            "block_order": 16,
+            "group_id": 18
+        },
+        {
+            "block_label": "text",
+            "block_content": "For and on Behalf of AT Casting House Ltd.",
+            "block_bbox": [
+                120,
+                1376,
+                441,
+                1402
+            ],
+            "block_id": 19,
+            "block_order": 17,
+            "group_id": 19
+        },
+        {
+            "block_label": "text",
+            "block_content": "Date: 30/9/2025",
+            "block_bbox": [
+                121,
+                1406,
+                256,
+                1431
+            ],
+            "block_id": 20,
+            "block_order": 18,
+            "group_id": 20
+        },
+        {
+            "block_label": "image",
+            "block_content": "",
+            "block_bbox": [
+                140,
+                1453,
+                199,
+                1508
+            ],
+            "block_id": 21,
+            "block_order": null,
+            "group_id": 21
+        },
+        {
+            "block_label": "text",
+            "block_content": "AT Casting House Ltd",
+            "block_bbox": [
+                214,
+                1461,
+                416,
+                1490
+            ],
+            "block_id": 22,
+            "block_order": 19,
+            "group_id": 22
+        },
+        {
+            "block_label": "text",
+            "block_content": "Office: +852 28908828",
+            "block_bbox": [
+                695,
+                1461,
+                907,
+                1487
+            ],
+            "block_id": 23,
+            "block_order": 20,
+            "group_id": 23
+        },
+        {
+            "block_label": "text",
+            "block_content": "19/F Kingsfield centre, No.18 Shell street, Fortress Hill, Hong Kong",
+            "block_bbox": [
+                202,
+                1490,
+                1000,
+                1525
+            ],
+            "block_id": 24,
+            "block_order": 21,
+            "group_id": 24
+        }
+    ],
+    "layout_det_res": {
+        "input_path": null,
+        "page_index": null,
+        "boxes": [
+            {
+                "cls_id": 6,
+                "label": "doc_title",
+                "score": 0.9216888546943665,
+                "coordinate": [
+                    467.014892578125,
+                    142.45181274414062,
+                    938.3031005859375,
+                    187.30252075195312
+                ]
+            },
+            {
+                "cls_id": 14,
+                "label": "image",
+                "score": 0.8968324065208435,
+                "coordinate": [
+                    388.7533874511719,
+                    129.32176208496094,
+                    455.3161926269531,
+                    201.3460235595703
+                ]
+            },
+            {
+                "cls_id": 17,
+                "label": "paragraph_title",
+                "score": 0.906013011932373,
+                "coordinate": [
+                    118.05722045898438,
+                    212.10968017578125,
+                    197.68707275390625,
+                    238.07012939453125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.941789448261261,
+                "coordinate": [
+                    874.5658569335938,
+                    211.39508056640625,
+                    1020.1073608398438,
+                    236.1307373046875
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9416842460632324,
+                "coordinate": [
+                    117.5315170288086,
+                    269.5005187988281,
+                    371.0680847167969,
+                    294.6211853027344
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9444524645805359,
+                "coordinate": [
+                    117.34915161132812,
+                    297.80126953125,
+                    489.6768493652344,
+                    323.380615234375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9425662755966187,
+                "coordinate": [
+                    118.3267593383789,
+                    328.021484375,
+                    356.4125671386719,
+                    352.55517578125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.932659924030304,
+                "coordinate": [
+                    118.47306823730469,
+                    356.34417724609375,
+                    394.67523193359375,
+                    380.82635498046875
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9270328283309937,
+                "coordinate": [
+                    117.97384643554688,
+                    385.73797607421875,
+                    367.14129638671875,
+                    410.48199462890625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9396921396255493,
+                "coordinate": [
+                    117.12753295898438,
+                    413.66729736328125,
+                    756.426513671875,
+                    440.14495849609375
+                ]
+            },
+            {
+                "cls_id": 21,
+                "label": "table",
+                "score": 0.9895421266555786,
+                "coordinate": [
+                    114.74563598632812,
+                    465.8345947265625,
+                    1025.552978515625,
+                    941.44677734375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9516370296478271,
+                "coordinate": [
+                    148.5418701171875,
+                    1030.313720703125,
+                    583.4447021484375,
+                    1056.102783203125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.558282196521759,
+                "coordinate": [
+                    250.02960205078125,
+                    1059.0147705078125,
+                    831.9376831054688,
+                    1085.7178955078125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.956215500831604,
+                "coordinate": [
+                    139.6427001953125,
+                    1116.11181640625,
+                    719.6072998046875,
+                    1143.431640625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9493469595909119,
+                "coordinate": [
+                    151.44375610351562,
+                    1145.905029296875,
+                    796.645263671875,
+                    1172.960693359375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9464079737663269,
+                "coordinate": [
+                    121.14360046386719,
+                    1204.451904296875,
+                    223.25746154785156,
+                    1229.677978515625
+                ]
+            },
+            {
+                "cls_id": 14,
+                "label": "image",
+                "score": 0.7773958444595337,
+                "coordinate": [
+                    123.73218536376953,
+                    1270.349853515625,
+                    349.27447509765625,
+                    1348.120361328125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.921934187412262,
+                "coordinate": [
+                    121.63319396972656,
+                    1349.6162109375,
+                    243.59349060058594,
+                    1372.93603515625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8938188552856445,
+                "coordinate": [
+                    824.0068359375,
+                    1272.908935546875,
+                    1095.279541015625,
+                    1358.738037109375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9374382495880127,
+                "coordinate": [
+                    120.81723022460938,
+                    1376.562255859375,
+                    441.3350524902344,
+                    1402.605712890625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.909553587436676,
+                "coordinate": [
+                    121.48949432373047,
+                    1406.31396484375,
+                    256.70391845703125,
+                    1431.11669921875
+                ]
+            },
+            {
+                "cls_id": 14,
+                "label": "image",
+                "score": 0.9135138988494873,
+                "coordinate": [
+                    140.01315307617188,
+                    1453.2969970703125,
+                    199.63027954101562,
+                    1508.0418701171875
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.7799930572509766,
+                "coordinate": [
+                    214.99606323242188,
+                    1461.3331298828125,
+                    416.4650573730469,
+                    1490.5228271484375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8730347752571106,
+                "coordinate": [
+                    695.3193359375,
+                    1461.198974609375,
+                    907.672607421875,
+                    1487.843017578125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9503163695335388,
+                "coordinate": [
+                    202.805908203125,
+                    1490.977783203125,
+                    1000.776123046875,
+                    1525.058837890625
+                ]
+            }
+        ]
+    }
+}

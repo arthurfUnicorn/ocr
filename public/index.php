@@ -379,7 +379,8 @@ $parsers = $registry->getAllParsers();
 </head>
 <body>
   <div class="container">
-    <h1>📦 Invoice Importer</h1>
+    <!-- <h1>📦 Invoice Importer</h1> -->
+    <h1>Invoice Importer</h1>
     <p class="subtitle">Upload invoice files for parsing and import</p>
 
     <form method="post" action="?action=upload" enctype="multipart/form-data" id="uploadForm">
@@ -391,7 +392,7 @@ $parsers = $registry->getAllParsers();
           <label class="type-option selected" id="opt-purchase">
             <input type="radio" name="type" value="purchase" required checked>
             <div class="type-content">
-              <div class="type-icon">🛒</div>
+              <!-- <div class="type-icon">🛒</div> -->
               <div class="type-title">Purchase Invoice</div>
               <div class="type-desc">From suppliers</div>
             </div>
@@ -401,7 +402,7 @@ $parsers = $registry->getAllParsers();
           <label class="type-option" id="opt-sale">
             <input type="radio" name="type" value="sale" required>
             <div class="type-content">
-              <div class="type-icon">💰</div>
+              <!-- <div class="type-icon">💰</div> -->
               <div class="type-title">Sale Invoice</div>
               <div class="type-desc">To customers</div>
             </div>
@@ -413,12 +414,14 @@ $parsers = $registry->getAllParsers();
       <div class="form-group">
         <label>2. Upload Files</label>
         <div class="upload-tabs">
-          <button type="button" class="tab-btn active" data-tab="folder">📁 Folder Upload</button>
-          <button type="button" class="tab-btn" data-tab="files">📄 Select Files</button>
+          <!-- <button type="button" class="tab-btn active" data-tab="folder">📁 Folder Upload</button>
+          <button type="button" class="tab-btn" data-tab="files">📄 Select Files</button> -->
+                    <button type="button" class="tab-btn active" data-tab="folder">Folder Upload</button>
+          <button type="button" class="tab-btn" data-tab="files">Select Files</button>
         </div>
         
         <div class="upload-zone" id="uploadZone">
-          <div class="upload-icon">📂</div>
+          <!-- <div class="upload-icon">📂</div> -->
           <div class="upload-text">
             <span id="uploadPrompt">Click or drag a folder here</span>
           </div>
@@ -433,7 +436,7 @@ $parsers = $registry->getAllParsers();
         <div class="file-list hidden" id="fileList"></div>
       </div>
 
-      <div class="form-group parser-selector">
+      <div class="form-group parser-selector" style="display: none!important;">
         <label>3. Parser Selection (Optional)</label>
         <select name="parser">
           <option value="auto">🔍 Auto-detect format</option>
@@ -446,7 +449,7 @@ $parsers = $registry->getAllParsers();
 
       <button type="submit" id="submitBtn" disabled>Continue to Preview →</button>
 
-      <div class="info-box">
+      <div class="info-box"  style="display: none!important;">
         <strong>📋 Supported File Types</strong>
         The system accepts JSON and MD files from various OCR/parsing tools:
         <ul>

@@ -1,0 +1,559 @@
+{
+    "input_path": "C:\\Users\\fooar\\Downloads\\Copy of 1-1.pdf",
+    "page_index": 0,
+    "page_count": 1,
+    "width": 1191,
+    "height": 1684,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_layout_detection": true,
+        "use_chart_recognition": false,
+        "format_block_content": false,
+        "merge_layout_blocks": true,
+        "markdown_ignore_labels": [
+            "number",
+            "footnote",
+            "header",
+            "header_image",
+            "footer",
+            "footer_image",
+            "aside_text"
+        ]
+    },
+    "parsing_res_list": [
+        {
+            "block_label": "header_image",
+            "block_content": "",
+            "block_bbox": [
+                34,
+                17,
+                206,
+                141
+            ],
+            "block_id": 0,
+            "block_order": null,
+            "group_id": 0
+        },
+        {
+            "block_label": "paragraph_title",
+            "block_content": "Premium Tech Limited\n晉科科技有限公司",
+            "block_bbox": [
+                395,
+                4,
+                718,
+                89
+            ],
+            "block_id": 1,
+            "block_order": 1,
+            "group_id": 1
+        },
+        {
+            "block_label": "header",
+            "block_content": "INVOICE",
+            "block_bbox": [
+                961,
+                27,
+                1124,
+                62
+            ],
+            "block_id": 2,
+            "block_order": null,
+            "group_id": 2
+        },
+        {
+            "block_label": "text",
+            "block_content": "3/F, Sheung Hei Factory Bldg, 19 Shueung Hei St, San Po Kong\n電話：2110 4654",
+            "block_bbox": [
+                285,
+                97,
+                818,
+                124
+            ],
+            "block_id": 3,
+            "block_order": 2,
+            "group_id": 3
+        },
+        {
+            "block_label": "text",
+            "block_content": "",
+            "block_bbox": [
+                287,
+                125,
+                442,
+                152
+            ],
+            "block_id": 4,
+            "block_order": 3,
+            "group_id": 3
+        },
+        {
+            "block_label": "text",
+            "block_content": "電郵：Sales@premiumtech.com",
+            "block_bbox": [
+                556,
+                124,
+                820,
+                150
+            ],
+            "block_id": 5,
+            "block_order": 4,
+            "group_id": 5
+        },
+        {
+            "block_label": "text",
+            "block_content": "傳真：2357 0017",
+            "block_bbox": [
+                288,
+                153,
+                442,
+                180
+            ],
+            "block_id": 6,
+            "block_order": 5,
+            "group_id": 6
+        },
+        {
+            "block_label": "text",
+            "block_content": "網站：",
+            "block_bbox": [
+                557,
+                151,
+                619,
+                176
+            ],
+            "block_id": 7,
+            "block_order": 6,
+            "group_id": 7
+        },
+        {
+            "block_label": "text",
+            "block_content": "發票編號",
+            "block_bbox": [
+                205,
+                189,
+                283,
+                218
+            ],
+            "block_id": 8,
+            "block_order": 7,
+            "group_id": 8
+        },
+        {
+            "block_label": "text",
+            "block_content": "客戶",
+            "block_bbox": [
+                806,
+                191,
+                848,
+                219
+            ],
+            "block_id": 9,
+            "block_order": 8,
+            "group_id": 9
+        },
+        {
+            "block_label": "text",
+            "block_content": "I01AF02749",
+            "block_bbox": [
+                31,
+                228,
+                150,
+                255
+            ],
+            "block_id": 10,
+            "block_order": 9,
+            "group_id": 10
+        },
+        {
+            "block_label": "text",
+            "block_content": "通信地址 Unit C5, 3/F, Hoover Industrial Bldg, 26-38,\nKwai Cheong Road, Kwai Chung\nC0223",
+            "block_bbox": [
+                28,
+                265,
+                524,
+                322
+            ],
+            "block_id": 11,
+            "block_order": 10,
+            "group_id": 11
+        },
+        {
+            "block_label": "text",
+            "block_content": "",
+            "block_bbox": [
+                573,
+                232,
+                640,
+                260
+            ],
+            "block_id": 12,
+            "block_order": 11,
+            "group_id": 11
+        },
+        {
+            "block_label": "text",
+            "block_content": "送貨地址",
+            "block_bbox": [
+                572,
+                266,
+                651,
+                294
+            ],
+            "block_id": 13,
+            "block_order": 12,
+            "group_id": 13
+        },
+        {
+            "block_label": "text",
+            "block_content": "Vertex One",
+            "block_bbox": [
+                736,
+                233,
+                847,
+                261
+            ],
+            "block_id": 14,
+            "block_order": 13,
+            "group_id": 14
+        },
+        {
+            "block_label": "table",
+            "block_content": "<table><tr><td colspan=\"2\">聯絡人</td><td>電話</td><td>銷售員</td><td colspan=\"3\">發票日期</td><td>信用期</td></tr><tr><td colspan=\"2\">Stephine</td><td>24220261</td><td>Steve</td><td colspan=\"3\">2/10/2025</td><td rowspan=\"7\">-1</td></tr><tr><td>編號</td><td>項目</td><td>說明</td><td>數量</td><td>單價</td><td>折扣</td><td>總數</td></tr><tr><td>1</td><td>81057</td><td>Hedonic 5000Mah with embedded cables blk</td><td>**</td><td>$40.00</td><td></td><td>$4,800.00</td></tr><tr><td>2</td><td>81058</td><td>Hedonic 5000Mah with embedded cables wht</td><td>**</td><td>$40.00</td><td></td><td>$4,800.00</td></tr><tr><td>3</td><td>81059</td><td>10000mAh with Embedded Cables, Black</td><td>**</td><td>$65.00</td><td></td><td>$26,000.00</td></tr><tr><td>4</td><td>81060</td><td>10000mAh with Embedded Cables, White</td><td>**</td><td>$65.00</td><td></td><td>$26,000.00</td></tr><tr><td>5</td><td>81053</td><td>USB-C Cable 20000mAh Battery, Black</td><td>**</td><td>$76.00</td><td></td><td>$10,640.00</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>",
+            "block_bbox": [
+                17,
+                323,
+                1118,
+                1268
+            ],
+            "block_id": 15,
+            "block_order": null,
+            "group_id": 15
+        },
+        {
+            "block_label": "text",
+            "block_content": "Premium Tech Limited",
+            "block_bbox": [
+                39,
+                1384,
+                235,
+                1412
+            ],
+            "block_id": 16,
+            "block_order": 14,
+            "group_id": 16
+        },
+        {
+            "block_label": "text",
+            "block_content": "確認貨品在良好狀態下收取的人員",
+            "block_bbox": [
+                677,
+                1383,
+                954,
+                1411
+            ],
+            "block_id": 17,
+            "block_order": 15,
+            "group_id": 17
+        },
+        {
+            "block_label": "text",
+            "block_content": "Vertex One",
+            "block_bbox": [
+                678,
+                1416,
+                782,
+                1444
+            ],
+            "block_id": 18,
+            "block_order": 16,
+            "group_id": 18
+        },
+        {
+            "block_label": "footer_image",
+            "block_content": "",
+            "block_bbox": [
+                256,
+                1407,
+                356,
+                1504
+            ],
+            "block_id": 19,
+            "block_order": null,
+            "group_id": 19
+        },
+        {
+            "block_label": "footer",
+            "block_content": "Premium Tech Limited\n簽名並公司印章",
+            "block_bbox": [
+                32,
+                1525,
+                227,
+                1577
+            ],
+            "block_id": 20,
+            "block_order": null,
+            "group_id": 20
+        },
+        {
+            "block_label": "footer",
+            "block_content": "簽名並公司印章",
+            "block_bbox": [
+                680,
+                1524,
+                814,
+                1551
+            ],
+            "block_id": 21,
+            "block_order": null,
+            "group_id": 21
+        }
+    ],
+    "layout_det_res": {
+        "input_path": null,
+        "page_index": null,
+        "boxes": [
+            {
+                "cls_id": 13,
+                "label": "header_image",
+                "score": 0.7942057847976685,
+                "coordinate": [
+                    34.66070556640625,
+                    17.212188720703125,
+                    206.42340087890625,
+                    141.2869873046875
+                ]
+            },
+            {
+                "cls_id": 17,
+                "label": "paragraph_title",
+                "score": 0.6990061402320862,
+                "coordinate": [
+                    395.1238098144531,
+                    4.517879486083984,
+                    718.736572265625,
+                    89.75163269042969
+                ]
+            },
+            {
+                "cls_id": 12,
+                "label": "header",
+                "score": 0.9071133732795715,
+                "coordinate": [
+                    961.390380859375,
+                    27.08837127685547,
+                    1124.91455078125,
+                    62.06169891357422
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9607548117637634,
+                "coordinate": [
+                    285.7833557128906,
+                    97.2691421508789,
+                    818.7606201171875,
+                    124.78630828857422
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9458572864532471,
+                "coordinate": [
+                    287.9949951171875,
+                    125.87356567382812,
+                    442.871337890625,
+                    152.16403198242188
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9409085512161255,
+                "coordinate": [
+                    556.78173828125,
+                    124.92819213867188,
+                    820.673828125,
+                    150.326416015625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9444570541381836,
+                "coordinate": [
+                    288.6915588378906,
+                    153.95387268066406,
+                    442.3924865722656,
+                    180.01930236816406
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9049410223960876,
+                "coordinate": [
+                    557.8421630859375,
+                    151.27023315429688,
+                    619.8355712890625,
+                    176.46310424804688
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.563010573387146,
+                "coordinate": [
+                    205.47427368164062,
+                    189.67025756835938,
+                    283.7926025390625,
+                    218.160888671875
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.7153300046920776,
+                "coordinate": [
+                    806.433349609375,
+                    191.54916381835938,
+                    848.63671875,
+                    219.74520874023438
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9366366863250732,
+                "coordinate": [
+                    31.968734741210938,
+                    228.85601806640625,
+                    150.22352600097656,
+                    255.70892333984375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.7973119020462036,
+                "coordinate": [
+                    28.310958862304688,
+                    265.1163024902344,
+                    524.9177856445312,
+                    322.5740661621094
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.7076667547225952,
+                "coordinate": [
+                    573.3616943359375,
+                    232.988525390625,
+                    640.420166015625,
+                    260.101318359375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8320024609565735,
+                "coordinate": [
+                    572.286865234375,
+                    266.74822998046875,
+                    651.5751953125,
+                    294.60235595703125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.7154287099838257,
+                "coordinate": [
+                    736.0698852539062,
+                    233.31719970703125,
+                    847.4655151367188,
+                    261.0264892578125
+                ]
+            },
+            {
+                "cls_id": 21,
+                "label": "table",
+                "score": 0.9848846197128296,
+                "coordinate": [
+                    17.65496826171875,
+                    323.92578125,
+                    1118.28662109375,
+                    1268.340576171875
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9334474205970764,
+                "coordinate": [
+                    39.3653564453125,
+                    1384.382080078125,
+                    235.008544921875,
+                    1412.390869140625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9341914057731628,
+                "coordinate": [
+                    677.4588012695312,
+                    1383.843505859375,
+                    954.0573120117188,
+                    1411.994384765625
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.9014027118682861,
+                "coordinate": [
+                    678.5196533203125,
+                    1416.998046875,
+                    782.851806640625,
+                    1444.328125
+                ]
+            },
+            {
+                "cls_id": 9,
+                "label": "footer_image",
+                "score": 0.8736687898635864,
+                "coordinate": [
+                    256.52142333984375,
+                    1407.3408203125,
+                    356.45172119140625,
+                    1504.39599609375
+                ]
+            },
+            {
+                "cls_id": 8,
+                "label": "footer",
+                "score": 0.9476432204246521,
+                "coordinate": [
+                    32.21263122558594,
+                    1525.784423828125,
+                    227.2683868408203,
+                    1577.11962890625
+                ]
+            },
+            {
+                "cls_id": 8,
+                "label": "footer",
+                "score": 0.7888947129249573,
+                "coordinate": [
+                    680.6810302734375,
+                    1524.8167724609375,
+                    814.9327392578125,
+                    1551.1871337890625
+                ]
+            }
+        ]
+    }
+}

@@ -554,12 +554,13 @@ $parserInfo = $draft['source'] ?? [];
         Run ID: <?=h($runId)?> | Invoices: <?=h((string)count($invoicesJson))?>
       </p>
     </div>
-    <button class="btn btn-secondary" onclick="saveAllDrafts()">💾 Save Changes</button>
+    <button class="btn btn-secondary" onclick="saveAllDrafts()" style="display: none!important;">💾 Save Changes</button>
   </div>
   <div class="parser-info">
-    <span>📄 <strong>Format:</strong> <?=h($parserInfo['parser_name'] ?? 'Unknown')?></span>
-    <span>📁 <strong>Files:</strong> <?=h((string)($parserInfo['file_count'] ?? 0))?></span>
-    <span>📊 <strong>Confidence:</strong>
+    <span style="display: none!important;">📄 <strong>Format:</strong> <?=h($parserInfo['parser_name'] ?? 'Unknown')?></span>
+    <!-- <span>📁 <strong>Files:</strong> <?=h((string)($parserInfo['file_count'] ?? 0))?></span> -->
+        <span><strong>Files:</strong> <?=h((string)($parserInfo['file_count'] ?? 0))?></span>
+    <span style="display: none!important;">📊 <strong>Confidence:</strong>
       <span class="confidence-bar">
         <span class="confidence-fill" style="width: <?=h((string)(($parserInfo['confidence'] ?? 0) * 100))?>%"></span>
       </span>
@@ -572,7 +573,7 @@ $parserInfo = $draft['source'] ?? [];
 
 <div class="actions-bar">
   <a href="index.php" class="btn btn-secondary">← Back</a>
-  <button class="btn btn-secondary" onclick="saveAllDrafts()">💾 Save Draft</button>
+  <button class="btn btn-secondary" onclick="saveAllDrafts()" style="display: none!important;">💾 Save Draft</button>
   <form method="post" action="?action=confirm&run=<?=h($runId)?>" style="flex: 2;" id="confirmForm">
     <input type="hidden" name="csrf" value="<?=h($csrf)?>">
     <button type="submit" class="btn btn-success" style="width: 100%;">
@@ -580,7 +581,7 @@ $parserInfo = $draft['source'] ?? [];
     </button>
   </form>
 </div>
-
+      <!-- <span class="card-title">📄 Invoice #${invIdx + 1} - ${inv.source_file}</span> -->
 <script>
 const runId = <?=json_encode($runId)?>;
 const type = <?=json_encode($type)?>;
@@ -710,7 +711,7 @@ function renderInvoice(invIdx) {
   
   container.innerHTML = `
     <div class="card-header">
-      <span class="card-title">📄 Invoice #${invIdx + 1} - ${inv.source_file}</span>
+            <span class="card-title">Invoice #${invIdx + 1} - ${inv.source_file}</span>
       <span class="status-badge ${inv.entity_exists ? 'badge-exists' : 'badge-new'}">
         ${inv.entity_exists ? '✓ ' + entityLabel + ' Exists (ID: ' + inv.entity_id + ')' : '+ New ' + entityLabel}
       </span>

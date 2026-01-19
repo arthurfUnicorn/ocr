@@ -1,0 +1,398 @@
+{
+    "input_path": "C:\\Users\\fooar\\Downloads\\Copy of 入賬單 10月 (2).pdf",
+    "page_index": 1,
+    "page_count": 2,
+    "width": 1191,
+    "height": 1685,
+    "model_settings": {
+        "use_doc_preprocessor": false,
+        "use_layout_detection": true,
+        "use_chart_recognition": false,
+        "format_block_content": false,
+        "merge_layout_blocks": true,
+        "markdown_ignore_labels": [
+            "number",
+            "footnote",
+            "header",
+            "header_image",
+            "footer",
+            "footer_image",
+            "aside_text"
+        ]
+    },
+    "parsing_res_list": [
+        {
+            "block_label": "image",
+            "block_content": "",
+            "block_bbox": [
+                140,
+                110,
+                374,
+                347
+            ],
+            "block_id": 0,
+            "block_order": null,
+            "group_id": 0
+        },
+        {
+            "block_label": "text",
+            "block_content": "Invoice",
+            "block_bbox": [
+                982,
+                91,
+                1059,
+                116
+            ],
+            "block_id": 1,
+            "block_order": 1,
+            "group_id": 1
+        },
+        {
+            "block_label": "text",
+            "block_content": "Mink Modelling",
+            "block_bbox": [
+                934,
+                124,
+                1059,
+                147
+            ],
+            "block_id": 2,
+            "block_order": 2,
+            "group_id": 2
+        },
+        {
+            "block_label": "text",
+            "block_content": "19/F, Kingsfield Centre, 18 Shell Street, Fortress Hill, HK.",
+            "block_bbox": [
+                685,
+                150,
+                1059,
+                174
+            ],
+            "block_id": 3,
+            "block_order": 3,
+            "group_id": 3
+        },
+        {
+            "block_label": "text",
+            "block_content": "Ms Tammy\n+852 53398601\nminkmodelling@gmail.com",
+            "block_bbox": [
+                876,
+                181,
+                1060,
+                249
+            ],
+            "block_id": 4,
+            "block_order": 4,
+            "group_id": 4
+        },
+        {
+            "block_label": "table",
+            "block_content": "<table><tr><td>BILL TO</td><td>Invoice #</td><td>Honor 29092025</td></tr><tr><td>At Casting</td><td>Date</td><td>29 Sep 2025</td></tr><tr><td>香港炮台山蜆殼街18號嘉昌商業中心19樓</td><td>Due date</td><td>29 Oct 2025</td></tr><tr><td>Ron Lee : +852 9801 7183</td><td></td><td></td></tr></table>",
+            "block_bbox": [
+                116,
+                397,
+                1063,
+                511
+            ],
+            "block_id": 5,
+            "block_order": null,
+            "group_id": 5
+        },
+        {
+            "block_label": "header_image",
+            "block_content": "",
+            "block_bbox": [
+                161,
+                183,
+                354,
+                281
+            ],
+            "block_id": 6,
+            "block_order": null,
+            "group_id": 6
+        },
+        {
+            "block_label": "table",
+            "block_content": "<table><tr><td>Item</td><td>Quantity</td><td>Price</td><td>Amount</td></tr><tr><td>Honor VideoUsage : 3 months only in HK for all digital channel ( Exclude TV )</td><td>1</td><td>HKD 0.00</td><td>HKD 0.00</td></tr><tr><td>Talent : Sam$1000/h x 4.5hrs ( 15:00-19:15 )</td><td>1</td><td>HKD 4,500.00</td><td>HKD 4,500.00</td></tr><tr><td>Talent : Ching$1000/h x 6.5hrs ( 20:00 - 02:24 )</td><td>1</td><td>HKD 6,500.00</td><td>HKD 6,500.00</td></tr><tr><td>Talent : Paris$1000/h x 6hrs ( 02:30-08:30 )</td><td>1</td><td>HKD 6,000.00</td><td>HKD 6,000.00</td></tr><tr><td>Sam Taxi</td><td>1</td><td>HKD 165.00</td><td>HKD 165.00</td></tr><tr><td>Ching Taxi</td><td>1</td><td>HKD 257.00</td><td>HKD 257.00</td></tr><tr><td>Parls Taxi</td><td>1</td><td>HKD 529.00</td><td>HKD 529.00</td></tr><tr><td>Payment Instructions</td><td colspan=\"2\">Subtotal</td><td>HKD 17,951.00</td></tr><tr><td>Mink Modelling</td><td colspan=\"2\">Total</td><td>HKD 17,951.00</td></tr></table>",
+            "block_bbox": [
+                109,
+                554,
+                1069,
+                1099
+            ],
+            "block_id": 7,
+            "block_order": null,
+            "group_id": 7
+        },
+        {
+            "block_label": "text",
+            "block_content": "Hang Seng Bank Acc No.: 369-730502-883",
+            "block_bbox": [
+                116,
+                1111,
+                407,
+                1136
+            ],
+            "block_id": 8,
+            "block_order": 5,
+            "group_id": 8
+        },
+        {
+            "block_label": "text",
+            "block_content": "Our company reserves the right to charge interest on all overdue invoices at 2% per month, Thank You!",
+            "block_bbox": [
+                115,
+                1155,
+                544,
+                1203
+            ],
+            "block_id": 9,
+            "block_order": 6,
+            "group_id": 9
+        },
+        {
+            "block_label": "text",
+            "block_content": "Amount Due",
+            "block_bbox": [
+                768,
+                1261,
+                856,
+                1285
+            ],
+            "block_id": 10,
+            "block_order": 7,
+            "group_id": 10
+        },
+        {
+            "block_label": "text",
+            "block_content": "PAID\n30/9/2025 444690",
+            "block_bbox": [
+                326,
+                1339,
+                684,
+                1448
+            ],
+            "block_id": 11,
+            "block_order": 8,
+            "group_id": 11
+        },
+        {
+            "block_label": "text",
+            "block_content": "HKD17,951.00",
+            "block_bbox": [
+                900,
+                1293,
+                1057,
+                1322
+            ],
+            "block_id": 12,
+            "block_order": 9,
+            "group_id": 12
+        }
+    ],
+    "layout_det_res": {
+        "input_path": null,
+        "page_index": null,
+        "boxes": [
+            {
+                "cls_id": 14,
+                "label": "image",
+                "score": 0.5644702315330505,
+                "coordinate": [
+                    140.78961181640625,
+                    110.09581756591797,
+                    374.97509765625,
+                    347.2733154296875
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.4775826930999756,
+                "coordinate": [
+                    982.8341064453125,
+                    91.54190063476562,
+                    1059.3358154296875,
+                    116.35873413085938
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.4697157144546509,
+                "coordinate": [
+                    934.76806640625,
+                    124.76051330566406,
+                    1059.91357421875,
+                    147.7248077392578
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.7543226480484009,
+                "coordinate": [
+                    685.641357421875,
+                    150.51951599121094,
+                    1059.731201171875,
+                    174.3513946533203
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.4421982169151306,
+                "coordinate": [
+                    876.6591796875,
+                    226.79592895507812,
+                    1060.447021484375,
+                    248.66482543945312
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.5247104167938232,
+                "coordinate": [
+                    876.091796875,
+                    181.94651794433594,
+                    1060.581298828125,
+                    249.67869567871094
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.4670937657356262,
+                "coordinate": [
+                    117.75228881835938,
+                    412.6911315917969,
+                    182.43505859375,
+                    434.8160095214844
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.40679270029067993,
+                "coordinate": [
+                    118.55509948730469,
+                    436.3483581542969,
+                    192.86961364746094,
+                    458.3629455566406
+                ]
+            },
+            {
+                "cls_id": 21,
+                "label": "table",
+                "score": 0.5249220728874207,
+                "coordinate": [
+                    116.0609130859375,
+                    397.416015625,
+                    1063.226806640625,
+                    511.9373779296875
+                ]
+            },
+            {
+                "cls_id": 13,
+                "label": "header_image",
+                "score": 0.6053374409675598,
+                "coordinate": [
+                    161.12008666992188,
+                    183.8265380859375,
+                    354.6831359863281,
+                    281.23516845703125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.4466901123523712,
+                "coordinate": [
+                    118.98883056640625,
+                    460.8182067871094,
+                    393.4263916015625,
+                    483.3658142089844
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.40022075176239014,
+                "coordinate": [
+                    117.94340515136719,
+                    459.158203125,
+                    393.33563232421875,
+                    506.7393798828125
+                ]
+            },
+            {
+                "cls_id": 21,
+                "label": "table",
+                "score": 0.9677116274833679,
+                "coordinate": [
+                    109.62088012695312,
+                    554.1942138671875,
+                    1069.20166015625,
+                    1099.7225341796875
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8027330636978149,
+                "coordinate": [
+                    116.80752563476562,
+                    1111.49951171875,
+                    407.7934265136719,
+                    1136.94580078125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8860838413238525,
+                "coordinate": [
+                    115.57098388671875,
+                    1155.989501953125,
+                    544.8385620117188,
+                    1203.93359375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8754468560218811,
+                "coordinate": [
+                    768.128662109375,
+                    1261.86669921875,
+                    856.879638671875,
+                    1285.30517578125
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.6417901515960693,
+                "coordinate": [
+                    326.3389892578125,
+                    1339.876708984375,
+                    684.251953125,
+                    1448.779052734375
+                ]
+            },
+            {
+                "cls_id": 22,
+                "label": "text",
+                "score": 0.8352495431900024,
+                "coordinate": [
+                    900.890869140625,
+                    1293.0960693359375,
+                    1057.5582275390625,
+                    1322.5533447265625
+                ]
+            }
+        ]
+    }
+}
